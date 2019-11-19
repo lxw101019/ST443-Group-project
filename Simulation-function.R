@@ -1,4 +1,12 @@
-
+# Lin: 
+# This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
+# Be careful about 'the choice of delta'. Will discuss about the official way to choose delta in the future days.
+# 
+# Arguments:1. number_of_dimensions: the number of variables/features
+#           2. how_many_sets_of_data_you_need: As the name said, the number of rows of data do you want to simulate?
+#
+# Retutn: 1.testdata: the simulated data in a matrix.
+#
 simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
   
   library(MASS)
@@ -38,5 +46,6 @@ simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
   testdata <- mvrnorm(n = how_many_sets_of_data_you_need, mu = numeric(nod), Sigma = covMatrix, tol = 0, empirical = FALSE, EISPACK = FALSE)
   
   return(testdata)
+  
   #ps:Feel so bad writing code in R ;D                    -LIN
 }
