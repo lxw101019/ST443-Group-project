@@ -44,8 +44,14 @@ simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
   
   #generate nod random samples from a multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
   testdata <- mvrnorm(n = how_many_sets_of_data_you_need, mu = numeric(nod), Sigma = covMatrix, tol = 0, empirical = FALSE, EISPACK = FALSE)
+  ls1 <-  list("data" = testdata, "standardtheta" = standard_theta, "theta" = theta)
   
-  return(testdata)
+  return(ls1)
   
   #ps:Feel so bad writing code in R ;D                    -LIN
 }
+
+x <- simulation(10,20)
+x$standardtheta
+x$theta
+set.seed(10)
