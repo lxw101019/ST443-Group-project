@@ -28,7 +28,6 @@ edge_table <- function(data_set, lambda_choice){
     coeff <- append(coeff, 1, after= i-1)
     edge[i,] <- coeff
   }
-  
   tf <- data.frame(lapply(edge, function(x) {x!=0}))
   colnames(tf) <- seq(numOfDims)
   return(tf)
