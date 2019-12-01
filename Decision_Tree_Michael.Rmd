@@ -1,0 +1,173 @@
+---
+title: "Decision_Tree"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("/Users/michaelongwenyun/Desktop/Github/ST443/ST443-Group-project")
+library(tree)
+library(randomForest)
+final_data <- read.csv("st443amsterdamdata_new")
+final_data <- final_data[,-1]
+```
+
+## Decision Tree
+
+Another method which we used to help property owners decide on the best indicators to price their rental properties is using the decision tree. The initial regression tree has 7 terminal nodes, with corresponding MSE on test data at 0.167. The tree is pruned using cross-validation and the optimal terminal nodes is reduced to 3. Using the above pruned regression tree, we noted that the 2 main variables affecting the price of a rental property are the number of bedrooms and room type. It is observed that the main factor is bedrooms, i.e. as long as there are two or more bedrooms, it can fetch a higher rental yield. Interestingly, the number of bathrooms do not play a significant role. 
+
+```{r}
+plot(tree.final_data_log)
+text(tree.final_data_log)
+
+plot(cv.final_data_log$size, cv.final_data_log$dev, type = "b") 
+plot(prune.tree_final_data_log)
+text(prune.tree_final_data_log)
+```
+
+To further support the findings on the main internal nodes, we performed bagging on the decision tree, where trees are repeatedly fitted to bootstrapped subsets of the observations. From the Variable Importance Measure plot (Fig XXX), the findings remains the same, where bedrooms followed by room types remain as key factors affecting rental yield.
+```{r}
+varImpPlot(bag.final_data_log)
+```
+
+We then use random forest and boosting techniques to further improve the predictability of the model. By selecting different tuning parameters in the random forest and boosting methods and comparing the MSE (Fig XXX), we conclude that boosting with a depth of 4 provides the greatest predictability.
+```{r}
+graph
+```
+
+## Appendix
+
+Generating of training set
+```{r}
+set.seed(1)
+train <- sample(1:nrow(final_data), nrow(final_data) / 2)
+```
+
+Decision tree - base model
+```{r Decision Tree, echo=FALSE}
+tree.final_data_log <- tree(logprice ~ review_scores_rating + host_is_superhost +  
+                              host_listings_count + host_identity_verified + 
+                              room_type + bathrooms + bedrooms + 
+                              minimum_nights + number_of_reviews + cancellation_policy + 
+                              instant_bookable + host_since_duration + location_3ways + 
+                              cleaning_fee,  final_data, subset = train)
+summary(tree.final_data_log)
+plot(tree.final_data_log)
+text(tree.final_data_log)
+```
+
+Cross-validation on decision tree
+```{r CV, echo=FALSE}
+cv.final_data_log <- cv.tree(tree.final_data_log, K=10)
+plot(cv.final_data_log$size, cv.final_data_log$dev, type = "b") 
+```
+
+Prune tree diagram
+```{r Prune Tree, echo=FALSE}
+prune.tree_final_data_log <- prune.tree(tree.final_data_log, best = 3)
+summary(prune.tree_final_data_log)
+plot(prune.tree_final_data_log)
+text(prune.tree_final_data_log)
+```
+
+
+```{r}
+yhat_log <- predict(prune.tree_final_data_log, newdata = final_data[-train,])
+tree_final_data_log.test <- final_data[-train, "logprice"]
+
+## Compute the test MSE
+mean((yhat_log - tree_final_data_log.test)^2)
+```
+
+```{r}
+bag.final_data_log <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = final_data, subset = train, mtry=14, importance=TRUE)
+bag.final_data_log
+
+## Compute the test MSE
+mean((yhat_log.bag - tree_final_data_log.test)^2)
+# 0.1307, better than 0.167 (original) 
+importance(bag.final_data_log)
+varImpPlot(bag.final_data_log)
+```
+
+
+```{r}
+#final_data$instant_bookable <- factor(final_data$instant_bookable)
+#yhat.log1 = rep(0, 3)
+#n <- 1000
+#yhat.log1mean = rep(0, n)
+#yhat.log2mean = rep(0, n)
+#yhat.log3mean = rep(0, n)
+#yhat.boost1mean = rep(0, n)
+#yhat.boost2mean = rep(0, n)
+#degree <- 1:n
+#for (i in degree){
+#forest.final_data_log1 <-randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+#                           host_listings_count + host_identity_verified + 
+#                           room_type + bathrooms + bedrooms + 
+#                           minimum_nights + number_of_reviews + cancellation_policy + 
+#                           instant_bookable + host_since_duration + location_3ways + 
+#                           cleaning_fee,  data = final_data, subset = train, mtry=sqrt(14), #importance=TRUE, 
+#                         n.tree = i)
+#forest.final_data_log2 <-randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+#                                        host_listings_count + host_identity_verified + 
+#                                        room_type + bathrooms + bedrooms + 
+#                                        minimum_nights + number_of_reviews + cancellation_policy + 
+#                                        instant_bookable + host_since_duration + location_3ways + 
+#                                        cleaning_fee,  data = final_data, subset = train, mtry=14/2, #importance=TRUE, 
+#                                      n.tree = i)
+#forest.final_data_log3 <-randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+#                                        host_listings_count + host_identity_verified + 
+#                                        room_type + bathrooms + bedrooms + 
+#                                        minimum_nights + number_of_reviews + cancellation_policy + 
+#                                        instant_bookable + host_since_duration + location_3ways + 
+#                                        cleaning_fee,  data = final_data, subset = train, mtry=14/3, #importance=TRUE, 
+#                                      n.tree = i)
+#
+#boost.log1 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+#                      host_listings_count + host_identity_verified + 
+#                      room_type + bathrooms + bedrooms + 
+#                      minimum_nights + number_of_reviews + cancellation_policy + 
+#                      instant_bookable + host_since_duration + location_3ways + 
+#                      cleaning_fee, data = final_data[train , ], distribution = "gaussian",
+#                    n.trees = i, interaction.depth = 4)
+#
+#boost.log2 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+#                    host_listings_count + host_identity_verified + 
+#                    room_type + bathrooms + bedrooms + 
+#                    minimum_nights + number_of_reviews + cancellation_policy + 
+#                    instant_bookable + host_since_duration + location_3ways + 
+#                    cleaning_fee, data = final_data[train , ], distribution = "gaussian",
+#                  n.trees = i, interaction.depth = 6)
+#
+#yhat.log1 <-predict(forest.final_data_log1, newdata=final_data[-train,])
+#yhat.log1mean[i] <- mean((yhat.log1 - tree_final_data_log.test)^2)
+#
+#yhat.log2 <-predict(forest.final_data_log2, newdata=final_data[-train,])
+#yhat.log2mean[i] <- mean((yhat.log2 - tree_final_data_log.test)^2)
+#
+#yhat.log3 <- predict(forest.final_data_log3, newdata=final_data[-train,])
+#yhat.log3mean[i] <- mean((yhat.log3 - tree_final_data_log.test)^2)
+#
+#yhat.boost1 <- predict(boost.log1, newdata = final_data[-train,], n.trees = i)
+#yhat.boost1mean[i] <- mean((yhat.boost1 - tree_final_data_log.test) ^ 2)
+#
+#yhat.boost2 <- predict(boost.log2, newdata = final_data[-train,], n.trees = i)
+#yhat.boost2mean[i] <- mean((yhat.boost2 - tree_final_data_log.test) ^ 2)
+#}
+#
+#plot(degree, yhat.log1mean, type="b", col="red", ylim=range(0,1))
+#lines(degree, yhat.log2mean, type = "b", col="blue")
+#lines(degree, yhat.log3mean, type = "b", col="green")
+#lines(degree, yhat.boost1, type = "b", col="orange")
+#lines(degree, yhat.boost2, type = "b", col="black")
+#title("Airbnb rental price (Amsterdam)")
+#legend(0,2.8 c("RF m=sqrt(14)", "RF m=7", "RF m=5", "GBM depth=4", "GBM depth=6")
+#       col=c("red", "blue", "green", "orange", "black"), pch=c(15,16,17,18))
+```
+
