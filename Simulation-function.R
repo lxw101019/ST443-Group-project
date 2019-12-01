@@ -30,8 +30,9 @@ simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
   #guidance paper so I just simply sample one number from 1 to 100 which can make the theta postive 
   #definite. 
   delta <- 0
+  
   is.positive.definite(B+delta*I, tol=0)
-  while (is.positive.definite(B+delta*I, tol=1e-8)==FALSE){delta = sample(1:100, 1)}
+  while (is.positive.definite(B+delta*I, tol=0)==FALSE){delta <- delta + 1}
   
   #theta
   theta = B + delta*I
@@ -45,13 +46,11 @@ simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
   #generate nod random samples from a multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
   testdata <- mvrnorm(n = how_many_sets_of_data_you_need, mu = numeric(nod), Sigma = covMatrix, tol = 0, empirical = FALSE, EISPACK = FALSE)
   ls1 <-  list("data" = testdata, "standardtheta" = standard_theta, "theta" = theta)
-  
+
   return(ls1)
-  
-  #ps:Feel so bad writing code in R ;D                    -LIN
 }
 
-x <- simulation(10,20)
+x <- simulation(3,100)
 x$standardtheta
 x$theta
 set.seed(10)
