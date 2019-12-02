@@ -8,7 +8,7 @@
 #
 confusion_matrix <- function(estimate_edge, true_edge, estimate_way){
   numOfDims <- nrow(estimate_edge)
-  confusion <- list(TP = 0,FP = 0,FN = 0,TN = 0)
+  confusion <- list(TP = 0,FP = 0,FN = 0,TN = 0,TP_rate = 0,FP_rate = 0)
   
   for (i in seq(numOfDims)){
     for (j in seq(numOfDims)[seq(numOfDims)>i]){
@@ -43,5 +43,7 @@ confusion_matrix <- function(estimate_edge, true_edge, estimate_way){
       }
     }
   }
+  TP_rate <- confusion$TP/(confusion$TP + confusion$FN)
+  FP_rate <- confusion$FP/(confusion$FP + confusion$TN)
   return(confusion)
 }
