@@ -1,6 +1,6 @@
 # Lin: 
 # This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
-# Be careful about 'the choice of delta'. Will discuss about the official way to choose delta in the future days.
+# After discussion, delta now is chosen as minimal as possible.
 # 
 # Arguments:1. number_of_dimensions: the number of variables/features
 #           2. how_many_sets_of_data_you_need: As the name said, the number of rows of data do you want to simulate?
@@ -26,9 +26,7 @@ simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
   #indentity matrix
   I <- diag(x = 1, nod, nod)
   
-  #delta is something I am pretty not sure about. I am confused with the word 'chosen' used in the project
-  #guidance paper so I just simply sample one number from 1 to 100 which can make the theta postive 
-  #definite. 
+  #In this version, delta will start from 0 and choose as minimal as possible, usually delta = 1 will be chosen.
   delta <- 0
   
   is.positive.definite(B+delta*I, tol=0)
@@ -49,8 +47,3 @@ simulation <- function(number_of_dimensions, how_many_sets_of_data_you_need){
 
   return(ls1)
 }
-
-x <- simulation(3,100)
-x$standardtheta
-x$theta
-set.seed(10)
