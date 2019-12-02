@@ -13,8 +13,8 @@ choose_best_lambda <- function(data){
   
   lambda.best_list = rep(0,numOfDims)
   for (i in seq(numOfDims)){
-    y <- (testdata[,i])
-    x <- (testdata[,-c(i)])
+    y <- (data[,i])
+    x <- (data[,-c(i)])
     
     train <-sample(seq(numOfRows), 0.7*numOfRows, replace=FALSE)
     lasso.train <-glmnet(x[train,], y[train])
@@ -27,4 +27,4 @@ choose_best_lambda <- function(data){
   return(final)
 }
 
-choose_best_lambda(testdata)
+choose_best_lambda(data)
