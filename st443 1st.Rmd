@@ -1,0 +1,120 @@
+---
+title: "ST443 1st part"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Response Variable
+
+Firstly, trear realpice as response variable and try the boxcox transformation. We can see that the likelihood function is maximized when lambda = 0, so we do the log transformation and use logprice as the response variable.
+
+```{r}
+airbnb = read.csv("st445_final_data.csv", header = T)
+airbnb3 = subset(airbnb, select = -c(1,17))
+attach(airbnb)
+str(airbnb)
+regn = lm(realprice ~., airbnb3)
+summary(regn)
+library(MASS)
+boxcox(regn)
+```
+
+## MLR and best subset selction
+Try the best subeset variable selection and stepwise selection. As the best subset selction computes all possible combinations of different variables, we use the result of this method. Also, split the data into traing(80%) and test(20%) parts.
+
+
+```{r}
+#split the data into training and testing dataset
+airbnb1 = subset(airbnb, select = -c(1,15))
+traingsize = floor(0.8*nrow(airbnb1))
+set.seed(123)
+train_ind = sample(seq_len(nrow(airbnb1)),size = traingsize)
+train=airbnb1[train_ind,]
+test=airbnb1[-train_ind,]
+
+attach(airbnb)
+str(airbnb)
+reg1 = lm(logprice ~., train)
+summary(reg1)
+library(leaps)
+reg2=regsubsets(logprice~.,nvmax = 20,data = train)
+plot(reg2, scale = "adjr2")
+summary(reg2)
+plot(reg2, scale = "bic")
+outbs=summary(reg2)
+which.max(outbs$adjr2)
+which.min(outbs$bic)
+#check multicollinearity
+library(car)
+vif(reg1)
+airbnb2 = subset(train, select = -c(host_identity_verified))
+reg3 = lm(logprice~., airbnb2)
+vif(reg3)
+summary(reg3)
+#Check ANOVA
+ANO=anova(reg3)
+ANO
+#removing outliers and leverage points
+c = cooks.distance(reg3)
+a=which(c>4/12014)
+b=which(abs(rstandard(reg3))>3)
+d=union(a,b)
+airbnbnew=train[-d,]
+reg4=lm(logprice~., airbnbnew)
+summary(reg4)
+train2 = subset(train, select = -c(host_identity_verified,minimum_nights,cleaning_fee))
+#regression diagnostics
+plot(reg4)
+mean(reg4$residuals)
+#calculate MSE
+predictedvalues = predict(reg4, newdata = test)
+plot(predictedvalues, test$logprice)
+MSE1 = mean((predictedvalues-test$logprice)^2)
+#other variable selection method
+step1 = stepAIC(reg1, direction = "both")
+summary(step1)
+```
+
+We can see that our model satisfies the NICE properties and the MSE is around 0.1307.
+
+## Try GAM
+Firstly, try poly on different reasonable quantitative variables and use ANOVA to identity which df is the best(up to 4), according to ISLR. Then repeat the same process as above.
+```{r}
+library(gam)
+poly1 = lm(logprice~poly(bedrooms,3), data = airbnb1)
+summary(poly1)
+poly2 = lm(logprice~poly(bathrooms,2),data = airbnb1)
+summary(poly2)
+poly3 = lm(logprice~poly(minimum_nights,1), data = airbnb1)
+summary(poly3)
+summary(bathrooms)
+plot(bathrooms, logprice)
+gam1 = lm(logprice ~ ns(bedrooms,3)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam1)
+gam1p = lm(logprice ~ s(bedrooms,3)+s(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam1p)
+summary(reg4)
+names(airbnb)
+bestgam = regsubsets(logprice ~ ns(bedrooms,3)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+plot(bestgam, scale = "adjr2")
+
+gam2 = lm(logprice ~ ns(bedrooms,2)+bathrooms+host_is_superhost+room_type+cleaning_fee+location_3ways, train)
+summary(gam2)
+#removing outliers and leverage points
+c1 = cooks.distance(gam2)
+a1=which(c>4/12014)
+b1=which(abs(rstandard(gam2))>3)
+d1=union(a1,b1)
+airbnbnew1=train[-d1,]
+gam3=lm(logprice ~ ns(bedrooms,2)+bathrooms+host_is_superhost+room_type+cleaning_fee+location_3ways, airbnbnew1)
+summary(gam3)
+#calculate MSE(gam)
+predictedvalues1 = predict(gam3, newdata = test)
+plot(predictedvalues1, test$logprice)
+MSE2 = mean((predictedvalues1-test$logprice)^2)
+#We can see that the MSE is around 0.1338, slightly worse than the previous method.

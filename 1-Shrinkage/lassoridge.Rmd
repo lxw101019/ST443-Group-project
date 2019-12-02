@@ -1,0 +1,87 @@
+---
+title: "LASSO and Ridge Regression amsterdam"
+author: "Laurens van der Maas"
+date: "12/1/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Ridge Regression
+The test MSE of the optimal ridge regression is very similar to that of the MLR, a bit higher even. Unfortunately this method does not seem relevant on our dataset.
+
+
+```{r cars, warning=FALSE}
+suppressMessages(library(readr))
+suppressMessages(library(glmnet))
+
+amsterdam <- read_csv('st445_final_data')
+amsterdam <- amsterdam[,-c(1,15)]
+
+# glmnet does not use formula language
+x <- model.matrix(logprice ~ ., data = amsterdam)
+y <- amsterdam$logprice
+
+fit.ridge <-glmnet(x, y, alpha=0)
+
+# 8, 7, 15, 20, 16 most important var
+plot(fit.ridge, xvar="lambda", label= TRUE)
+plot(fit.ridge, xvar="dev", label= TRUE)
+
+cv.ridge <-cv.glmnet(x, y, alpha=0)
+## Plot of CV mse vs log (lambda), small lambda is best apparently. 
+plot(cv.ridge)
+## Coefficent vector corresponding to the mse which is within one standard error of the lowest mse using the best lambda.
+coef(cv.ridge)
+## Coefficient vector corresponding to the lowest mse using the best lambda
+coef(glmnet(x,y,alpha=0, lambda=cv.ridge$lambda.min))
+
+# finding MSE
+set.seed(1)
+train <-sample(seq(15018), 7509, replace=FALSE)
+ridge.train <-glmnet(x[train,], y[train], alpha = 0)
+pred.test.ridge <-predict(ridge.train, x[-train,])
+dim(pred.test.ridge)
+rmse.ridge <-sqrt(apply((y[-train]-pred.test.ridge)^2,2,mean))
+plot(log(ridge.train$lambda), rmse.ridge, type="b", xlab="Log(lambda)")
+lambda.best.ridge <- ridge.train$lambda[order(rmse.ridge)[1]]
+lambda.best.ridge
+mseRidge <- min(rmse.ridge)
+mseRidge
+```
+
+## LASSO Regression
+The test MSE of the optimal LASSO regression is very similar to that of the MLR. Unfortunately this method does not seem relevant on our dataset.
+
+
+```{r}
+fit.lasso <- glmnet(x,y)
+plot(fit.lasso, xvar="lambda", label= TRUE)
+plot(fit.lasso, xvar="dev", label= TRUE)
+cv.lasso <-cv.glmnet(x, y)
+# Again, 8, 15, 7, 20. 
+
+plot(cv.lasso)
+# Use very small lambda, again
+## coefficent vector corresponding to the mse which is within one standard error of the lowest mse using the best lambda.
+coef(cv.lasso)
+## coefficient vector corresponding to the lowest mse using the best lambda
+coef(glmnet(x,y, lambda=cv.lasso$lambda.min))
+
+## Validation set approach to select best lambda in Lasso
+set.seed(1)
+train <-sample(seq(15018), 7509, replace=FALSE)
+lasso.train <-glmnet(x[train,], y[train])
+pred.test <-predict(lasso.train, x[-train,])
+dim(pred.test)
+rmse <-sqrt(apply((y[-train]-pred.test)^2,2,mean))
+plot(log(lasso.train$lambda), rmse, type="b", xlab="Log(lambda)")
+lambda.best <-lasso.train$lambda[order(rmse)[1]]
+lambda.best
+mseLasso <- min(rmse)
+mseLasso
+```
+
+
