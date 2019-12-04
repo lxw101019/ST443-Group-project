@@ -1,8 +1,10 @@
-
+rm(list = ls())
 # Neural network
 
 #https://jjallaire.github.io/deep-learning-with-r-notebooks/notebooks/3.6-predicting-house-prices.nb.html
-install.packages("keras")
+#install.packages("keras")
+#install.packages("tensorflow")
+#install_tensorflow()
 library(keras)
 library(readr)
 library(dplyr)
@@ -13,9 +15,8 @@ library(car)
 library(fastDummies)
 library(ModelMetrics)
 library(tidyverse)
-install.packages("tensorflow")
 library(tensorflow)
-install_tensorflow()
+library(ISLR)
 tf$constant("Hellow Tensorflow")
 
 amsterdam <- read.csv('st445_final_data')
@@ -30,14 +31,43 @@ amsterdam <- mutate(amsterdam,
 #output_vector = amsterdam[,'logprice']
 amsterdam <- fastDummies::dummy_cols(amsterdam)
 amsterdam <- amsterdam[,-c(5,10,13,16,22,26)]
-amsterdam <- amsterdam[,-c(5,10,13)]
+#amsterdam <- amsterdam[,-c(5,10,13)]
 
+train_mat <- 
 # split out the train and test data
-?%<-%
-c(c(train_data, train_targets), c(test_data, test_targets)) %<-% amsterdam
-str(train_data)
+?list
+set.seed(1)
+trainindex <-sample(seq(15018), 10513, replace=FALSE)
+train_df <- amsterdam[trainindex,]
+train_data <- as.matrix(train_df[,-12])
+train_targets <- as.array(train_df[,12])
+
+
+vectorize_sequences <- function(sequences, dimension = 10000) {
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in 1:length(sequences))
+    results[i, sequences[[i]]] <- 1
+  results
+}
+test <- data.matrix(test_df[,-12], rownames.force=NA)
+str(test)
+test_df <- amsterdam[-trainindex,]
+test_data <- as.matrix(test_df[,-12])
+test_targets <- as.array(test_df[,12])
+
+str(train_mat)
 str(test_data)
 str(train_targets)
+
+
+#library(MASS)
+#boston_df <- Boston
+#dataset <- dataset_boston_housing()
+#class(dataset)
+#c(c(train_data, train_targets), c(test_data, test_targets)) %<-% dataset
+#str(train_data)
+#str(test_data)
+#str(train_targets)
 
 #Scale the data so that all variables are between 0 and 1
 
@@ -62,10 +92,10 @@ build_model <- function() {
 }
 
 #K-fold validation
-k <- 4
+k <- 2
 indices <- sample(1:nrow(train_data))
 folds <- cut(1:length(indices), breaks = k, labels = FALSE) 
-num_epochs <- 100
+num_epochs <- 10
 all_scores <- c()
 for (i in 1:k) {
   cat("processing fold #", i, "\n")
@@ -87,11 +117,14 @@ for (i in 1:k) {
   
   # Evaluate the model on the validation data
   results <- model %>% evaluate(val_data, val_targets, verbose = 0)
-  all_scores <- c(all_scores, results$mean_absolute_error)
+  #all_scores <- c(all_scores, results$mean_absolute_error)
+  all_scores <- c(all_scores, results$mae)
 } 
 
 all_scores
 mean(all_scores)
+# average MSE of around 0.31
+# tried to run epoch100 times, but too consuming on PC.
 
 # Some memory clean-up
 k_clear_session()
