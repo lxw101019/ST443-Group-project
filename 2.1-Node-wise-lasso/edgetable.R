@@ -24,7 +24,7 @@ edge_table <- function(data_set, lambda_choice){
     y <- (data_set[,i])
     x <- (data_set[,-c(i)])
     coeff <- coef(glmnet(x,y, lambda=lambda_choice))
-    coeff <- as.matrix(coeff)[-c(i)]
+    coeff <- as.matrix(coeff)[-c(1)]
     coeff <- append(coeff, 1, after= i-1)
     edge[i,] <- coeff
   }
