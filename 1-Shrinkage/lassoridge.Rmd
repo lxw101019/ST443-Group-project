@@ -8,16 +8,21 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+### Shrinkage Methods
+In this section shrinkage methods are applied to the AirBnB data. These methods constrain the coefficient estimates, shrinking them towards zero. This approach can significantly reduce the variance. 
 
 ## Ridge Regression
-The test MSE of the optimal ridge regression is very similar to that of the MLR, a bit higher even. Unfortunately this method does not seem relevant on our dataset.
+In a ridge regression, instead of using the least squares fitting procedure typical of OLS a penalty term is included in the estimation of the coefficients. The parameter $\lambda$ determines the size of this penalty. The larger the $\lambda$ the more the oefficients are shrunk. 
 
+In terms of fractional deviance explained, it turns out that the (dummy) variables Private Room, Shared Room, super_strict_30, super_strict_60, near_centre are most important. Some of these, however, converge to zero faster than other variables that explain less of the fractional deviance. 
 
-```{r cars, warning=FALSE}
+In the optimal setting, the log of lambda is near -4. The optimal lambda is equal to 0.022 and the MSE on the test set is equal to 0.380. This optimal lambda is very small and therefore the model is not very different from the MLR model. Even more, the test MSE of the ridge regression with a lambda optimal for the training set is larger than that of the MLR. This method is therefore not relevant on this dataset.
+
+```{r cars, warning=FALSE, message=FALSE}
 suppressMessages(library(readr))
 suppressMessages(library(glmnet))
 
-amsterdam <- read_csv('st445_final_data')
+amsterdam <- read_csv('st443_final_data')
 amsterdam <- amsterdam[,-c(1,15)]
 
 # glmnet does not use formula language
@@ -26,21 +31,26 @@ y <- amsterdam$logprice
 
 fit.ridge <-glmnet(x, y, alpha=0)
 
-# 8, 7, 15, 20, 16 most important var
+# 8, 7, 15, 20, 16 most important vars
 plot(fit.ridge, xvar="lambda", label= TRUE)
 plot(fit.ridge, xvar="dev", label= TRUE)
 
 cv.ridge <-cv.glmnet(x, y, alpha=0)
-## Plot of CV mse vs log (lambda), small lambda is best apparently. 
+
+## Plot of CV mse vs log (lambda), small lambda is best
 plot(cv.ridge)
-## Coefficent vector corresponding to the mse which is within one standard error of the lowest mse using the best lambda.
+## Coefficent vector corresponding to the mse which is within 
+# one standard error of the lowest mse using the best lambda.
 coef(cv.ridge)
+
 ## Coefficient vector corresponding to the lowest mse using the best lambda
 coef(glmnet(x,y,alpha=0, lambda=cv.ridge$lambda.min))
 
 # finding MSE
-set.seed(1)
-train <-sample(seq(15018), 7509, replace=FALSE)
+traingsize = floor(0.7*nrow(amsterdam))
+set.seed(123)
+train = sample(seq_len(nrow(amsterdam)),size = traingsize)
+
 ridge.train <-glmnet(x[train,], y[train], alpha = 0)
 pred.test.ridge <-predict(ridge.train, x[-train,])
 dim(pred.test.ridge)
@@ -53,8 +63,9 @@ mseRidge
 ```
 
 ## LASSO Regression
-The test MSE of the optimal LASSO regression is very similar to that of the MLR. Unfortunately this method does not seem relevant on our dataset.
+A lasso regression is similar to a ridge regression in that it is a shrinkage method, but uses a different type of penalty term. In this type of model, some coefficient are shrunk to 0. The same five variables explain the largest part of the fractional deviance. 
 
+The test MSE of the optimal LASSO regression is again very similar to that of the MLR. This method is therefore neither relevant on this dataset. The log lambda at optimum is near -8. Lambda equals 0.00036 and the test MSE equals 0.379. Again, this lambda is too low to have any significant impact on the estimation and none of the coefficients are shrunk to 0 at this lambda.
 
 ```{r}
 fit.lasso <- glmnet(x,y)
@@ -64,15 +75,15 @@ cv.lasso <-cv.glmnet(x, y)
 # Again, 8, 15, 7, 20. 
 
 plot(cv.lasso)
+
 # Use very small lambda, again
-## coefficent vector corresponding to the mse which is within one standard error of the lowest mse using the best lambda.
+## coefficent vector corresponding to the mse which is within 
+# one standard error of the lowest mse using the best lambda.
 coef(cv.lasso)
 ## coefficient vector corresponding to the lowest mse using the best lambda
 coef(glmnet(x,y, lambda=cv.lasso$lambda.min))
 
-## Validation set approach to select best lambda in Lasso
-set.seed(1)
-train <-sample(seq(15018), 7509, replace=FALSE)
+## test MSE
 lasso.train <-glmnet(x[train,], y[train])
 pred.test <-predict(lasso.train, x[-train,])
 dim(pred.test)
