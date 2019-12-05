@@ -1,0 +1,104 @@
+---
+title: "Neural Network"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("keras")
+#install.packages("tensorflow")
+#install_tensorflow()
+library(keras)
+library(tensorflow)
+library(fastDummies)
+library(caret)
+library(tidyverse)
+library(magrittr)
+
+```
+
+## Neural Network
+
+We also consider training of neural network for predict the rental prices. Firstly, we use "Dummy Encoding" to change each categorical variable into a vector of 0's and 1's. The data is similarly split into train (70%) and test data (30%), where both the train and test data (features) are scaled using the train data's mean and variance. The scaling is required because the different features have varying ranges. For example, the reviews score rating has a range of (0,100) while the number of bedrooms has a much limited range of (1,12). Features with larger scale will intrinsially influence the result more due to its large value.
+
+As this is a scalar regression, we set the neural network to process the data over "densely connected layers" and we used 2 hidden layers, to increase predictability. There are 3 different tuning parameters, i.e the number of neurons/units in each hidden layer and the num_epoch and batch size. 
+
+We chose to set the number of nuerons as 16, based on the widely used formulae (no of inputs + no. of outputs)* 2/3. We then test different parameters for batch size and num_empoch. Batch size refers to the number of samples processed before the model is updated, while the number of epochs is the number of completed passes. With a batch size of 1, the model is updated everytime a sample is processed and while this is ideal, it is computationaly intensive with increasing number of epochs. For example, if epoch is set at 1,000 with batch size equals 1, there will be 10,000,000 batches during the entire training process. 
+
+Running batch size = 1 and epochs = 19 give us a MSE of 0.149. While this is better than some of the other models that were used, it is not the best model to predict the house rental price. Further arbitrary tweaking of the parameters may yield better results and can be explored further.  
+
+
+```{r }
+# NN - Part 1: Data transformation
+amsterdam <- read.csv("st445_final_data", header = T)
+
+amsterdam <- amsterdam[,-1]
+#dummify the data
+amsterdam <- mutate(amsterdam,
+                    instant_bookable = ifelse(instant_bookable == TRUE, 1, 0))
+#output_vector = amsterdam[,'logprice']
+amsterdam <- fastDummies::dummy_cols(amsterdam)
+#amsterdam <- amsterdam[,-c(5,10,13,14,22,26)]
+amsterdam <- amsterdam[,-c(5,10,13,14)]
+
+# Set training and testing dataset
+set.seed(123)
+trainingsize <- floor(0.7 * nrow(amsterdam))
+trainindex <- sample(seq_len(nrow(amsterdam)), size = trainingsize)
+
+train_df <- amsterdam[trainindex,]
+test_df <- amsterdam[-trainindex,]
+
+# split up train features(x) and train targets(y)
+train_data <- as.matrix(train_df[,-12])
+train_targets <- as.array(train_df[,12])
+
+# split up test features(x) and test targets(y)
+test_data <- as.matrix(test_df[,-12])
+test_targets <- as.array(test_df[,12])
+
+#Scale the data so that all variables are between 0 and 1
+
+mean <- apply(train_data, 2, mean)
+std <- apply(train_data, 2, sd)
+train_data <- scale(train_data, center = mean, scale = std)
+test_data <- scale(test_data, center = mean, scale = std)
+```
+
+```{r}
+
+# NN - PArt 2: Build neural network model
+build_model <- function() {
+  model <- keras_model_sequential() %>% 
+    layer_dense(units = 16, activation = "relu", 
+                input_shape = dim(train_data)[[2]]) %>% 
+    layer_dense(units = 16, activation = "relu") %>% 
+    layer_dense(units = 1) # single node because it is a regression ML
+  
+  model %>% compile(
+    optimizer = "rmsprop", 
+    loss = "mse", 
+    metrics = c("mae")
+  )
+}
+```
+
+```{r}
+# NN - Part 3 - change the number of learning iterations, i.e "num_epochs", with 10 and 50
+all_scores <- c()
+num_epochs <- 50
+
+# Build the Keras model (already compiled)
+model <- build_model()
+summary(model)
+# Train the model (in silent mode, verbose=0)
+model %>% fit(train_data, train_targets,
+                epochs = num_epochs, batch_size = 1, verbose = 0)
+  
+# Evaluate the model on the validation data
+results <- model %>% evaluate(test_data, test_targets, verbose = 0)
+#all_scores <- c(all_scores, results$mean_absolute_error)
+all_scores <- c(all_scores, results$loss)
+#MSE: 0.149141778 using num_epoch = 10, batch size=1
+#MSE: 0.15116772 using num_epoch = 50, batch size=1
+```
