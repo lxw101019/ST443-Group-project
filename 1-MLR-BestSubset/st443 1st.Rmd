@@ -1,0 +1,118 @@
+---
+title: "ST443 1st part"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Response Variable
+
+Firstly, treat realpice as response variable and try the boxcox transformation. We can see that the likelihood function is maximized when $$\lambda = 0$$, so we apply the log transformation and use logprice as the response variable. (The other reason could be Logarithmic price scales tend to show less severe price increases or decreases than linear price scales.)
+
+```{r}
+airbnb = read.csv("st445_final_data", header = T)
+#airbnb3 take out logprice and X columns
+airbnb3 = subset(airbnb, select = -c(1,17))
+attach(airbnb)
+str(airbnb)
+regn = lm(realprice ~., airbnb3)
+summary(regn)
+library(MASS)
+boxcox(regn)
+```
+
+## MLR and Best Subset Selction
+We split the data into training(70%) and testing(30%) parts.
+In this section, we consider to use the best subeset variable selection. We do not use stepwise selection here because it might produce a result that is away from the optimum solution. As the best subset selction computes all possible combinations of all the variables, this method produces the best result compared to other ones.
+We use the best subset selection with respect to adjusted R^2 and BIC. After the selction, our final model includes all the variable apart from "host_identity_verified", which was the result from Adjusted R^2.
+After checking with the Variance inflation factor(VIF), the multicollinearity does not exist, which means no vairables in this model are highly linearly related.
+
+In this section, we will check the four assumptions for the linear regression model, NICE. The first assumption is N, normality. We firstly observe the qq-plot of the model: almost all of the points lie on the straight line, which mean the normality is acceptable. With regard to independence, we can see that the distribution of residuals does not follow any pattern. Then, in terms of constant variance of residuals, we can check the diagram of residuals against fitted values. We observe that the residuals are distributed completely randomly and fluctuations of residuals are approximately the same for all fitted values. Finally, we can also see that the expectation of residuals is extremely close to 0 from the diagram, so the assumption of expectation of residuals is 0 is met as well.
+
+In summary, we fitted linear regression with the best variables selected and our model achieved relatively strong prediciton ability with MSE = 0.1428.
+```{r}
+#split the data into training and testing dataset
+#airbnb1 take out realprice and X columns
+airbnb1 = subset(airbnb, select = -c(1,15))
+traingsize = floor(0.8*nrow(airbnb1))
+set.seed(123)
+train_ind = sample(seq_len(nrow(airbnb1)),size = traingsize)
+train=airbnb1[train_ind,]
+test=airbnb1[-train_ind,]
+
+attach(airbnb)
+str(airbnb)
+reg1 = lm(logprice ~., train)
+summary(reg1)
+library(leaps)
+reg2=regsubsets(logprice~.,nvmax = 20,data = train)
+plot(reg2, scale = "adjr2")
+summary(reg2)
+plot(reg2, scale = "bic")
+outbs=summary(reg2)
+which.max(outbs$adjr2)
+which.min(outbs$bic)
+#check multicollinearity
+library(car)
+vif(reg1)
+airbnb2 = subset(train, select = -c(host_identity_verified))
+reg3 = lm(logprice~., airbnb2)
+vif(reg3)
+summary(reg3)
+#calculate MSE
+predictedvalues = predict(reg4, newdata = test)
+plot(predictedvalues, test$logprice)
+MSE1 = mean((predictedvalues-test$logprice)^2)
+#other variable selection method
+step1 = stepAIC(reg1, direction = "both")
+summary(step1)
+```
+
+
+## Generalized Additive Model
+After plotting the scatter plot of `logprice` against `bedrooms` and `bathrooms` respectively, since the scatter plots don't suggest a strong linear relationship, we used the polynomial regression on these variables. `bedrooms` variables are very significant up to degree 4, while `bathrooms` are significant up to degree 2. 
+By comparing with using smoothing spline, using natural spline on both of these two variable showed a higher Adjusted R-squared value.
+
+Furthermore, in this part, we also use the Best Subset Selection method with respect to Adjusted R-squared. Variables `minimum_nights` and `host_identity_verified` are removed.
+
+In summary, we fitted Generalized Additive Model on the selected variables and achieved lower MSE = 0.1368.
+
+
+```{r}
+library(gam)
+
+poly1 = lm(logprice~poly(bedrooms,4), data = airbnb1)
+summary(poly1)
+poly2 = lm(logprice~poly(bathrooms,3),data = airbnb1)
+summary(poly2)
+poly3 = lm(logprice ~ poly(number_of_reviews,4),data = airbnb1)
+summary(poly3)
+plot(bathrooms, logprice)
+
+#gam1 is trying natural spline
+gam1 = lm(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam1)
+#gam1p is trying smooth spline
+gam1p = lm(logprice ~ s(bedrooms,4)+s(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam1p)
+
+bestgam = regsubsets(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration,nvmax=20 ,train)
+plot(bestgam, scale = "adjr2")
+
+gam2 = lm(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+room_type+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam2)
+#calculate MSE(gam)
+predictedvalues1 = predict(gam2, newdata = test)
+plot(predictedvalues1, test$logprice)
+MSE2 = mean((predictedvalues1-test$logprice)^2)
+#We can see that the MSE is around 0.1338, slightly worse than the previous method.
+
+gam3 = lm(logprice ~ ns(bedrooms,4), test)
+plot(gam3)
+shapiro.test(gam3$residuals)
+```
