@@ -17,11 +17,11 @@
 ROC_curve <- function(data_set, theta, estimate_way, how_many_lambda_in_roc = 200){
 
   numOfDims <- ncol(data_set)
-  
-  max_lambda = 1
-  min_lambda = 0
   points <- data.frame(matrix(ncol = 3, nrow = how_many_lambda_in_roc))
   
+  # This loop I was trying to calculate the range of lambda that I should use. If you can't find better way to replace it, just use it. It works
+  max_lambda = 1
+  min_lambda = 0
   for (i in seq(numOfDims)){
     y <- (data_set[,i])
     x <- (data_set[,-c(i)])
@@ -33,23 +33,19 @@ ROC_curve <- function(data_set, theta, estimate_way, how_many_lambda_in_roc = 20
       min_lambda <- lasso.train$lambda[length(lasso.train$lambda)]
     }
   } 
-  #print(max_lambda)
-  #print(min_lambda)
+  #Lambdas that I am going to use.
   lambda_seq <- seq(from = min_lambda, to = max_lambda, length.out= how_many_lambda_in_roc)
-  #print(lambda_seq)
+  #Put it into `points` which is a dataframe we just built
   points[,3] <- lambda_seq
   true_edge <- true_edge(theta)
   
   for (i in seq(length(lambda_seq))){
     print(c('Calculating points:',i))
     estimate_edge <- edge_table(data_set, lambda_seq[i])
-    #print(estimate_edge)
     confusion <- confusion_matrix(estimate_edge, true_edge, estimate_way)
-    #print(confusion)
     TPR <- confusion$TP_rate
     FPR <- confusion$FP_rate
-    #print(TPR)
-    #print(FPR)
+    # put them into `points` as well, they will be the coordinates.
     points[i,1] <- TPR
     points[i,2] <- FPR
   }
@@ -57,7 +53,7 @@ ROC_curve <- function(data_set, theta, estimate_way, how_many_lambda_in_roc = 20
   return(points)
 }
 
-#after generating ROC Points, we should manually use ggplots to plot these point
+#after generating ROC Points, we should manually use ggplots to plot these point:
 library(ggplot2)
 ggplot(testtest, aes(FPR, TPR)) + geom_step()
 
