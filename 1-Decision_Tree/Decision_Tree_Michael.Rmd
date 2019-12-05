@@ -1,68 +1,67 @@
 ---
 title: "Decision_Tree"
-output: html_document
+output: 
+  html_document
+  #word_document
+  #pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-setwd("/Users/michaelongwenyun/Desktop/Github/ST443/ST443-Group-project")
+setwd("/Users/michaelongwenyun/Desktop/Github/ST443/ST443_Group_project")
 library(tree)
 library(randomForest)
-final_data <- read.csv("st443amsterdamdata_new")
-final_data <- final_data[,-1]
+amsterdam <- read.csv("st445_final_data", header = T)
+amsterdam <- amsterdam[,-1]
 ```
 
 ## Decision Tree
 
-Another method which we used to help property owners decide on the best indicators to price their rental properties is using the decision tree. The initial regression tree has 7 terminal nodes, with corresponding MSE on test data at 0.167. The tree is pruned using cross-validation and the optimal terminal nodes is reduced to 3. Using the above pruned regression tree, we noted that the 2 main variables affecting the price of a rental property are the number of bedrooms and room type. It is observed that the main factor is bedrooms, i.e. as long as there are two or more bedrooms, it can fetch a higher rental yield. Interestingly, the number of bathrooms do not play a significant role. 
+Another method which we used to help property owners decide on the best indicators to price their rental properties is using the decision tree. The initial regression tree has 7 terminal nodes, with corresponding MSE on test data at 0.174. The tree is pruned using cross-validation and the optimal terminal nodes is reduced to 3. 
 
-```{r}
-plot(tree.final_data_log)
-text(tree.final_data_log)
+Using the above pruned regression tree, we noted that the 2 main variables affecting the price of a rental property are the number of bedrooms and room type. The first node is split at bedrooms = 1.5, therefore, so long as there are two or more bedrooms in the property, it can fetch a higher rental yield regardless of it's location, past reviews ratings and the number of bathrooms. The next internal node (room type) is split at "cd", i.e. ("private room or shared room" vis-a-vis "Entire home or hotel room"), which is as per expected. Applying the base decision tree model on the test data, we obtained a MSE of 0.1748343 under the base decision tree.
 
-plot(cv.final_data_log$size, cv.final_data_log$dev, type = "b") 
-plot(prune.tree_final_data_log)
-text(prune.tree_final_data_log)
-```
+To further support the findings on the main internal nodes, we performed bagging on the decision tree, where trees are repeatedly fitted to bootstrapped subsets of the observations. From the Variable Importance Measure plot, the findings remains the same, where bedrooms followed by room types remain as key factors affecting rental yield.  Using bagging technique, the MSE improved to 0.1318838. 
 
-To further support the findings on the main internal nodes, we performed bagging on the decision tree, where trees are repeatedly fitted to bootstrapped subsets of the observations. From the Variable Importance Measure plot (Fig XXX), the findings remains the same, where bedrooms followed by room types remain as key factors affecting rental yield.
-```{r}
-varImpPlot(bag.final_data_log)
-```
+We further explore the use of random forest and boosting techniques to identify whether the predictability of the decision tree model can be improved. Random forest uses a subset ("m") of the total parameters (14 in total) and should reduce the correlation of the features, improving the predictability. Therefore, using 3 different random trees with varying "m", (m=sqrt(14), m = 7, m = 5), we  observed improved MSE output under m=sqrt(14) and m=5, where MSE is reduced to 0.1290447 under both models. 
 
-We then use random forest and boosting techniques to further improve the predictability of the model. By selecting different tuning parameters in the random forest and boosting methods and comparing the MSE (Fig XXX), we conclude that boosting with a depth of 4 provides the greatest predictability.
-```{r}
-graph
-```
+We also applied boosting techniques, i.e. to slowly "grow" the tree. As the boosting technique has 3 parameters, the number of trees, shrinkage parameter and number of splits (depth) in each tree, we varied the depth (2, 4 and 6) with the same number of trees (5000) and shrinkage parameter (0.01).  The model, with depth=2 has the best MSE out of the 3 models, of 0.1318706. While it is possible that boosting may further improve the predictability of the model, it would require more iterations to identify the combination of the 3 tuning parameters and may be further explored. 
+
 
 ## Appendix
 
-Generating of training set
+Codes: Generate training and testing set
 ```{r}
-set.seed(1)
-train <- sample(1:nrow(final_data), nrow(final_data) / 2)
+set.seed(123)
+trainingsize <- floor(0.7 * nrow(amsterdam))
+trainindex <- sample(seq_len(nrow(amsterdam)), size = trainingsize)
+levels(amsterdam$room_type)
+train_df <- amsterdam[trainindex,]
+test_df <- amsterdam[-trainindex,]
 ```
 
-Decision tree - base model
+Codes: Decision tree - base model and plots
+7 terminal nodes, bedrooms/roomtype+bathroom/location in order of tree hierachy
 ```{r Decision Tree, echo=FALSE}
 tree.final_data_log <- tree(logprice ~ review_scores_rating + host_is_superhost +  
                               host_listings_count + host_identity_verified + 
                               room_type + bathrooms + bedrooms + 
                               minimum_nights + number_of_reviews + cancellation_policy + 
                               instant_bookable + host_since_duration + location_3ways + 
-                              cleaning_fee,  final_data, subset = train)
+                              cleaning_fee,  data = train_df)
 summary(tree.final_data_log)
 plot(tree.final_data_log)
 text(tree.final_data_log)
 ```
 
-Cross-validation on decision tree
+Codes: Cross-validation on base decision tree
+Choose 3 terminal nodes as the decrease in deviation from 3 nodes onwards is minimal. 
 ```{r CV, echo=FALSE}
 cv.final_data_log <- cv.tree(tree.final_data_log, K=10)
 plot(cv.final_data_log$size, cv.final_data_log$dev, type = "b") 
 ```
 
-Prune tree diagram
+Codes: Plot of Prune tree
 ```{r Prune Tree, echo=FALSE}
 prune.tree_final_data_log <- prune.tree(tree.final_data_log, best = 3)
 summary(prune.tree_final_data_log)
@@ -70,104 +69,162 @@ plot(prune.tree_final_data_log)
 text(prune.tree_final_data_log)
 ```
 
-
+Codes: Generate predicted value of log price on test_df and calculate MSE (0.1748343)
 ```{r}
-yhat_log <- predict(prune.tree_final_data_log, newdata = final_data[-train,])
-tree_final_data_log.test <- final_data[-train, "logprice"]
+yhat_log <- predict(prune.tree_final_data_log, newdata = test_df)
+tree_final_data_log.test <- test_df[,"logprice"]
 
 ## Compute the test MSE
 mean((yhat_log - tree_final_data_log.test)^2)
 ```
 
-```{r}
+Codes: Use of bagging, m=14
+Compare MSE of bagged tree (0.1318838), lower than base decision tree of 0.1748343
+Var Imp Plot shows that bedrooms, room type, cleaning fee, locations (in priorities) are the main factors [Note: bedroom is >100%]
+
+```{r echo=TRUE}
 bag.final_data_log <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
                                  host_listings_count + host_identity_verified + 
                                  room_type + bathrooms + bedrooms + 
                                  minimum_nights + number_of_reviews + cancellation_policy + 
                                  instant_bookable + host_since_duration + location_3ways + 
-                                 cleaning_fee,  data = final_data, subset = train, mtry=14, importance=TRUE)
+                                 cleaning_fee,  data = train_df, mtry=14, importance=TRUE)
 bag.final_data_log
+
+yhat_log.bag <- predict(bag.final_data_log, newdata = test_df)
 
 ## Compute the test MSE
 mean((yhat_log.bag - tree_final_data_log.test)^2)
-# 0.1307, better than 0.167 (original) 
+# 0.1318838 MSE
 importance(bag.final_data_log)
 varImpPlot(bag.final_data_log)
 ```
 
+Codes: Random forest with n.tree = 5000. 
+With 14 features, 3 different random forest models with varying "m" are run ==> m=sqrt(14), m=7 (14/2), and m = 4 (14/3) 
 
-```{r}
-#final_data$instant_bookable <- factor(final_data$instant_bookable)
-#yhat.log1 = rep(0, 3)
-#n <- 1000
-#yhat.log1mean = rep(0, n)
-#yhat.log2mean = rep(0, n)
-#yhat.log3mean = rep(0, n)
-#yhat.boost1mean = rep(0, n)
-#yhat.boost2mean = rep(0, n)
-#degree <- 1:n
-#for (i in degree){
-#forest.final_data_log1 <-randomForest(logprice ~ review_scores_rating + host_is_superhost +  
-#                           host_listings_count + host_identity_verified + 
-#                           room_type + bathrooms + bedrooms + 
-#                           minimum_nights + number_of_reviews + cancellation_policy + 
-#                           instant_bookable + host_since_duration + location_3ways + 
-#                           cleaning_fee,  data = final_data, subset = train, mtry=sqrt(14), #importance=TRUE, 
-#                         n.tree = i)
-#forest.final_data_log2 <-randomForest(logprice ~ review_scores_rating + host_is_superhost +  
-#                                        host_listings_count + host_identity_verified + 
-#                                        room_type + bathrooms + bedrooms + 
-#                                        minimum_nights + number_of_reviews + cancellation_policy + 
-#                                        instant_bookable + host_since_duration + location_3ways + 
-#                                        cleaning_fee,  data = final_data, subset = train, mtry=14/2, #importance=TRUE, 
-#                                      n.tree = i)
-#forest.final_data_log3 <-randomForest(logprice ~ review_scores_rating + host_is_superhost +  
-#                                        host_listings_count + host_identity_verified + 
-#                                        room_type + bathrooms + bedrooms + 
-#                                        minimum_nights + number_of_reviews + cancellation_policy + 
-#                                        instant_bookable + host_since_duration + location_3ways + 
-#                                        cleaning_fee,  data = final_data, subset = train, mtry=14/3, #importance=TRUE, 
-#                                      n.tree = i)
-#
-#boost.log1 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
-#                      host_listings_count + host_identity_verified + 
-#                      room_type + bathrooms + bedrooms + 
-#                      minimum_nights + number_of_reviews + cancellation_policy + 
-#                      instant_bookable + host_since_duration + location_3ways + 
-#                      cleaning_fee, data = final_data[train , ], distribution = "gaussian",
-#                    n.trees = i, interaction.depth = 4)
-#
-#boost.log2 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
-#                    host_listings_count + host_identity_verified + 
-#                    room_type + bathrooms + bedrooms + 
-#                    minimum_nights + number_of_reviews + cancellation_policy + 
-#                    instant_bookable + host_since_duration + location_3ways + 
-#                    cleaning_fee, data = final_data[train , ], distribution = "gaussian",
-#                  n.trees = i, interaction.depth = 6)
-#
-#yhat.log1 <-predict(forest.final_data_log1, newdata=final_data[-train,])
-#yhat.log1mean[i] <- mean((yhat.log1 - tree_final_data_log.test)^2)
-#
-#yhat.log2 <-predict(forest.final_data_log2, newdata=final_data[-train,])
-#yhat.log2mean[i] <- mean((yhat.log2 - tree_final_data_log.test)^2)
-#
-#yhat.log3 <- predict(forest.final_data_log3, newdata=final_data[-train,])
-#yhat.log3mean[i] <- mean((yhat.log3 - tree_final_data_log.test)^2)
-#
-#yhat.boost1 <- predict(boost.log1, newdata = final_data[-train,], n.trees = i)
-#yhat.boost1mean[i] <- mean((yhat.boost1 - tree_final_data_log.test) ^ 2)
-#
-#yhat.boost2 <- predict(boost.log2, newdata = final_data[-train,], n.trees = i)
-#yhat.boost2mean[i] <- mean((yhat.boost2 - tree_final_data_log.test) ^ 2)
-#}
-#
-#plot(degree, yhat.log1mean, type="b", col="red", ylim=range(0,1))
-#lines(degree, yhat.log2mean, type = "b", col="blue")
-#lines(degree, yhat.log3mean, type = "b", col="green")
-#lines(degree, yhat.boost1, type = "b", col="orange")
-#lines(degree, yhat.boost2, type = "b", col="black")
-#title("Airbnb rental price (Amsterdam)")
-#legend(0,2.8 c("RF m=sqrt(14)", "RF m=7", "RF m=5", "GBM depth=4", "GBM depth=6")
-#       col=c("red", "blue", "green", "orange", "black"), pch=c(15,16,17,18))
+m = sqrt(14): MSE = 0.1290447
+m = 7 (14/2): MSE = 0.1305521
+m = 4 (14/3): MSE = 0.1290447
+```{r echo=TRUE}
+set.seed(123)
+forest.final_data_m1 <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=sqrt(14), importance=TRUE,
+                                 n.tree = 5000)
+forest.final_data_m1
+
+## Predicted values on the testing data
+yhat.forest_m1 <-predict(forest.final_data_m1, newdata=test_df)
+
+## Compute the test MSE
+mean((yhat.forest_m1 - tree_final_data_log.test)^2)
+# MSE of 0.1290447
 ```
 
+
+```{r echo=TRUE}
+set.seed(123)
+forest.final_data_m2 <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=7, importance=TRUE,
+                                 n.tree = 5000)
+forest.final_data_m2
+
+## Predicted values on the testing data
+yhat.forest_m2 <-predict(forest.final_data_m2, newdata=test_df)
+
+## Compute the test MSE
+mean((yhat.forest_m2 - tree_final_data_log.test)^2)
+# MSE of 0.1305521
+```
+
+```{r echo=TRUE}
+set.seed(123)
+forest.final_data_m3 <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=4, importance=TRUE,
+                                 n.tree = 5000)
+forest.final_data_m3
+
+## Predicted values on the testing data
+yhat.forest_m3 <-predict(forest.final_data_m3, newdata=test_df)
+
+## Compute the test MSE
+mean((yhat.forest_m3 - tree_final_data_log.test)^2)
+# MSE of 0.1290447
+```
+
+Codes: Boosting with n.tree = 5000. 
+2 different boosting models with varying depth -> depth=4 and depth =6
+
+Boosting depth = 4: MSE: 0.1383925 ==> relative influence of host_since_duration followed by bedrooms are the highest
+Boosting depth = 6: MSE: 0.1435316 ==> relative influence of host_since_duration followed by bedrooms remains the highest
+```{r echo=TRUE}
+library(gbm)
+set.seed (123)
+train_df$instant_bookable <- factor(train_df$instant_bookable)
+boost.log1 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+                      host_listings_count + host_identity_verified + 
+                      room_type + bathrooms + bedrooms + 
+                      minimum_nights + number_of_reviews + cancellation_policy + 
+                      instant_bookable + host_since_duration + location_3ways + 
+                      cleaning_fee, data = train_df, distribution = "gaussian",
+                    n.trees = 5000, interaction.depth = 4)
+summary(boost.log1)
+
+## Predicted values on the testing data
+yhat.boost1 <- predict(boost.log1, newdata = test_df, n.trees = 5000)
+
+## Compute the test MSE
+mean((yhat.boost1 - tree_final_data_log.test) ^ 2)
+#MSE of 0.1383925
+```
+
+```{r echo=TRUE}
+set.seed (123)
+train_df$instant_bookable <- factor(train_df$instant_bookable)
+boost.log2 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+                    host_listings_count + host_identity_verified + 
+                    room_type + bathrooms + bedrooms + 
+                    minimum_nights + number_of_reviews + cancellation_policy + 
+                    instant_bookable + host_since_duration + location_3ways + 
+                    cleaning_fee, data = train_df, distribution = "gaussian",
+                  n.trees = 5000, interaction.depth = 6)
+summary(boost.log2)
+
+## Predicted values on the testing data
+yhat.boost2 <- predict(boost.log2, newdata = test_df, n.trees = 5000)
+
+## Compute the test MSE
+mean((yhat.boost2 - tree_final_data_log.test) ^ 2)
+#MSE of 0.1435316
+```
+```{r echo=TRUE}
+set.seed (123)
+train_df$instant_bookable <- factor(train_df$instant_bookable)
+boost.log3 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+                    host_listings_count + host_identity_verified + 
+                    room_type + bathrooms + bedrooms + 
+                    minimum_nights + number_of_reviews + cancellation_policy + 
+                    instant_bookable + host_since_duration + location_3ways + 
+                    cleaning_fee, data = train_df, distribution = "gaussian",
+                  n.trees = 5000, interaction.depth = 2)
+summary(boost.log3)
+
+## Predicted values on the testing data
+yhat.boost3 <- predict(boost.log3, newdata = test_df, n.trees = 5000)
+
+## Compute the test MSE
+mean((yhat.boost3 - tree_final_data_log.test) ^ 2)
+#MSE of 0.1318706
+```
