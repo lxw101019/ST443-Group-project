@@ -39,7 +39,7 @@ In summary, we fitted linear regression with the best variables selected and our
 #split the data into training and testing dataset
 #airbnb1 take out realprice and X columns
 airbnb1 = subset(airbnb, select = -c(1,15))
-traingsize = floor(0.8*nrow(airbnb1))
+traingsize = floor(0.7*nrow(airbnb1))
 set.seed(123)
 train_ind = sample(seq_len(nrow(airbnb1)),size = traingsize)
 train=airbnb1[train_ind,]
