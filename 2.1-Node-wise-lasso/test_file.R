@@ -28,10 +28,10 @@ table
 
 #roc curve: this function use different lambdas(calculated inside) to calculate each TPR and FPR, and return a "point matrix", will need ggplot to plot it later
 #Here 'either' means we are estimate E by E_2 method
-E2_roc <- ROC_curve(testdata, testtheta,"either",100)
+E2_roc <- ROC_curve(testdata, testtheta,"either",200)
 
 #So here is E_1 method.
-E1_roc <- ROC_curve(testdata, testtheta,"both",100)
+E1_roc <- ROC_curve(testdata, testtheta,"both",200)
 
 # based on the result given by the ROC_curve , we plot the ROC curve here.
 library(ggplot2)
