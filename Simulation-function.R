@@ -25,10 +25,10 @@ simulation <- function(p, n){
   #Identity matrix
   I <- diag(x = 1, p, p)
   
-  #delta is something I am pretty not sure about. I am confused with the word 'chosen' used in the project
-  #guidance paper so I just simply sample one number from 1 to 100 which can make the theta postive 
-  #definite. 
-  delta <- 2
+  #In this version, delta will start from 0 and choose as minimal as possible, usually delta = 1 will be chosen.
+  delta <- 0
+  is.positive.definite(B+delta*I, tol=0)
+  while (is.positive.definite(B+delta*I, tol=0)==FALSE){delta <- delta + 1}
   
   #theta
   theta = B + delta*I
@@ -46,6 +46,6 @@ simulation <- function(p, n){
   return(ls1)
 }
 
-sampleData <- simulation(p = 20, n = 5000)
+
 
 
