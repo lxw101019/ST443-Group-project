@@ -5,8 +5,8 @@
 # Arguments:1. number_of_dimensions: the number of variables/features
 #           2. how_many_sets_of_data_you_need: As the name said, the number of rows of data do you want to simulate?
 #
-# Retutn: 1.testdata: the simulated data in a matrix.
-#
+# Retutn: 1.ls1: a list. list("data" = testdata, "standardtheta" = standard_theta, "theta" = theta)
+
 library(MASS)
 library(matrixcalc)
 library(glasso)
