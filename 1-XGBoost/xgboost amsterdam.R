@@ -1,7 +1,5 @@
 rm(list = ls())
 
-setwd("~/Documents/Rworkspace/ST443")
-
 library(readr)
 library(dplyr)
 library(xgboost)
@@ -11,50 +9,89 @@ library(car)
 library(fastDummies)
 library(ModelMetrics)
 
-amsterdam <- read_csv('st445_final_data')
+amsterdam <- read_csv('st443_final_data')
 amsterdam <- amsterdam[,-c(1,15)]
 
 amsterdam <- mutate(amsterdam,
                     instant_bookable = ifelse(instant_bookable == TRUE, 1, 0))
-#sparse_matrix <- sparse.model.matrix(logprice ~ .-1,
-#                                     data = amsterdam)
 
-#output_vector = amsterdam[,'logprice']
 amsterdam <- fastDummies::dummy_cols(amsterdam)
 amsterdam <- amsterdam[,-c(5,10,13,16,22,26)]
 
 
-set.seed(1)
-trainindex <-sample(seq(15018), 7509, replace=FALSE)
+traingsize = floor(0.7*nrow(amsterdam))
+set.seed(123)
+trainindex = sample(seq_len(nrow(amsterdam)),size = traingsize)
+
 train_df <- amsterdam[trainindex,]
 test_df <- amsterdam[-trainindex,]
 
-train <- as.matrix(train_df, rownames.force = NA)
-test <- as.matrix(test_df, rownames.force = NA)
-train <- as(train, "sparseMatrix")
-test <- as(test, "sparseMatrix")
+trainmatrix <- as.matrix(train_df, rownames.force = NA)
+testmatrix <- as.matrix(test_df, rownames.force = NA)
+dtrain <- as(trainmatrix, "sparseMatrix")
+dtest <- as(testmatrix, "sparseMatrix")
 
-train_data <- xgb.DMatrix(data = train[,-12], label = train[,"logprice"])
+train_data <- xgb.DMatrix(data = dtrain[,-12], label = dtrain[,"logprice"])
+test_data <- xgb.DMatrix(data = dtest[,-12])
 
-cv.ctrl <- trainControl(method = "repeatedcv", repeats = 1,number = 3)
-
-xgb.grid <- expand.grid(nrounds = 500,
-                        lambda = c(0,1),
-                        alpha = c(0,1),
-                        eta = c(0.01,0.3, 1)
+xgb_grid = expand.grid(
+  nrounds = 1000,
+  eta = c(0.1, 0.05, 0.01),
+  max_depth = c(2, 3, 4, 5, 6),
+  gamma = 0,
+  colsample_bytree=1,
+  min_child_weight=c(1, 2, 3, 4 ,5),
+  subsample=1
 )
 
-xgb_tune <-train(logprice ~.,
-                 data = train_df,
-                 method="xgbLinear",
-                 metric = "RMSE",
-                 trControl = cv.ctrl,
-                 tuneGrid = xgb.grid
+my_control <-trainControl(method="cv", number=5)
+
+#xgb_caret <- train(x = train_df[-12], y = train_df$logprice, 
+#                   method='xgbTree', trControl= my_control, 
+#                   tuneGrid = xgb_grid) 
+#xgb_caret$bestTune
+# nrounds = 1000, max_depth = 5, eta = 0.01, min_child_weight = 1
+
+#xgb_tune <-train(logprice ~.,
+#                 data = train_df,
+#                 method="xgbLinear",
+#                 metric = "RMSE",
+#                 trControl = cv.ctrl,
+#                 tuneGrid = xgb.grid
+#)
+
+default_param <- list(
+  objective = "reg:linear",
+  booster = "gbtree",
+  eta=0.01, #default = 0.3
+  gamma=0,
+  max_depth=5, #default=6
+  min_child_weight=1, #default=1
+  subsample=1,
+  colsample_bytree=1
 )
 
-test_data <- xgb.DMatrix(data = test[,-12])
+xgbcv <- xgb.cv( params = default_param, 
+                 data = dtrain, nrounds = 2000, 
+                 nfold = 5, 
+                 showsd = T, 
+                 stratified = T, 
+                 print_every_n = 40, 
+                 early_stopping_rounds = 10, 
+                 maximize = F,
+                 label = dtrain[,"logprice"])
 
-predictionXGB <- predict(xgb_tune, test_df)
-rmse(test_df$logprice,predictionXGB)
+#rmsedf12501350 <- data.frame(nrounds = vector(length = 11), rmses = vector(length=11))
+#count <- 0
+#for(i in seq(1250,1350,10)){
+#  count <- count + 1
+#  xgb_mod <- xgb.train(data = train_data, params = default_param, nrounds = i)
+#  XGBpred <- predict(xgb_mod, test_data)
+#  rmsedf12501350$rmses[count] <- rmse(test_df$logprice,XGBpred)
+#  rmsedf12501350$nrounds[count] <- i
+#}
 
+# AVERAGE PREDICTIONS!??
+# https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda
+#write.csv(rmsedf,'rmse500to1500.csv')
 
