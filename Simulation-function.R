@@ -9,8 +9,8 @@
 
 library(MASS)
 library(matrixcalc)
-library(glasso)
-library(qgraph)
+#library(glasso)
+#library(qgraph)
 
 simulation <- function(p, n){
   #a generate the lower triangle part of the pxp matrix with 10% to be 0.5 and 90% to be 0.

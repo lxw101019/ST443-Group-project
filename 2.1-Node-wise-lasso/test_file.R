@@ -13,8 +13,8 @@ testtheta <-testsample$standardtheta
 # Here is one way to calculate the best lambda. 
 # This is a validation-set approach.
 # choose the lambda cause least RMSE
-lambda_MINTESTERROR <- choose_best_lambda(testdata)
-
+lambda_rmse <- rmse_best_lambda(testdata)
+lambda_cv <- cv_best_lambda(testdata)
 
 #This function use the thets to generate the "real" edge for reference later
 trueedge <- true_edge(testtheta)
