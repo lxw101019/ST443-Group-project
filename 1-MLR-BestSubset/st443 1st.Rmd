@@ -35,44 +35,6 @@ After checking with the Variance inflation factor(VIF), the multicollinearity do
 In this section, we will check the four assumptions for the linear regression model, NICE. The first assumption is N, normality. We firstly observe the qq-plot of the model: almost all of the points lie on the straight line, which mean the normality is acceptable. With regard to independence, we can see that the distribution of residuals does not follow any pattern. Then, in terms of constant variance of residuals, we can check the diagram of residuals against fitted values. We observe that the residuals are distributed completely randomly and fluctuations of residuals are approximately the same for all fitted values. Finally, we can also see that the expectation of residuals is extremely close to 0 from the diagram, so the assumption of expectation of residuals is 0 is met as well.
 
 In summary, we fitted linear regression with the best variables selected and our model achieved relatively strong prediciton ability with MSE = 0.1428.
-```{r}
-#split the data into training and testing dataset
-#airbnb1 take out realprice and X columns
-airbnb1 = subset(airbnb, select = -c(1,15))
-traingsize = floor(0.7*nrow(airbnb1))
-set.seed(123)
-train_ind = sample(seq_len(nrow(airbnb1)),size = traingsize)
-train=airbnb1[train_ind,]
-test=airbnb1[-train_ind,]
-
-attach(airbnb)
-str(airbnb)
-reg1 = lm(logprice ~., train)
-summary(reg1)
-library(leaps)
-reg2=regsubsets(logprice~.,nvmax = 20,data = train)
-plot(reg2, scale = "adjr2")
-summary(reg2)
-plot(reg2, scale = "bic")
-outbs=summary(reg2)
-which.max(outbs$adjr2)
-which.min(outbs$bic)
-#check multicollinearity
-library(car)
-vif(reg1)
-airbnb2 = subset(train, select = -c(host_identity_verified))
-reg3 = lm(logprice~., airbnb2)
-vif(reg3)
-summary(reg3)
-#calculate MSE
-predictedvalues = predict(reg4, newdata = test)
-plot(predictedvalues, test$logprice)
-MSE1 = mean((predictedvalues-test$logprice)^2)
-#other variable selection method
-step1 = stepAIC(reg1, direction = "both")
-summary(step1)
-```
-
 
 ## Generalized Additive Model
 After plotting the scatter plot of `logprice` against `bedrooms` and `bathrooms` respectively, since the scatter plots don't suggest a strong linear relationship, we used the polynomial regression on these variables. `bedrooms` variables are very significant up to degree 4, while `bathrooms` are significant up to degree 2. 

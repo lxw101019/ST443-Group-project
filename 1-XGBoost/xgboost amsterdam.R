@@ -46,6 +46,7 @@ xgb_grid = expand.grid(
 
 my_control <-trainControl(method="cv", number=5)
 
+# Not run, takes ages
 #xgb_caret <- train(x = train_df[-12], y = train_df$logprice, 
 #                   method='xgbTree', trControl= my_control, 
 #                   tuneGrid = xgb_grid) 
@@ -81,17 +82,11 @@ xgbcv <- xgb.cv( params = default_param,
                  maximize = F,
                  label = dtrain[,"logprice"])
 
-#rmsedf12501350 <- data.frame(nrounds = vector(length = 11), rmses = vector(length=11))
-#count <- 0
-#for(i in seq(1250,1350,10)){
-#  count <- count + 1
-#  xgb_mod <- xgb.train(data = train_data, params = default_param, nrounds = i)
-#  XGBpred <- predict(xgb_mod, test_data)
-#  rmsedf12501350$rmses[count] <- rmse(test_df$logprice,XGBpred)
-#  rmsedf12501350$nrounds[count] <- i
-#}
+xgb_mod <- xgb.train(data = train_data, params = default_param, nrounds = 1300)
+XGBpred <- predict(xgb_mod, test_data)
+rmse <- rmse(test_df$logprice,XGBpred)
 
-# AVERAGE PREDICTIONS!??
-# https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda
-#write.csv(rmsedf,'rmse500to1500.csv')
+library(Ckmeans.1d.dp) #required for ggplot clustering
+mat <- xgb.importance(feature_names = colnames(train_df[-12]),model = xgb_mod)
+xgb.ggplot.importance(importance_matrix = mat[1:20], rel_to_first = TRUE)
 

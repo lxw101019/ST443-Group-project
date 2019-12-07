@@ -1,9 +1,8 @@
-# This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
-# here p=50 and n = 100
 library(ggplot2)
 library(DescTools)
+library(glasso)
 
-testsample <- simulation(100,1000)
+testsample <- simulation(20,1000)
 
 # testdata
 testdata <- testsample$data

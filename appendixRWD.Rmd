@@ -1,0 +1,733 @@
+---
+title: "Appendix Real World Data"
+author: "Laurens van der Maas"
+date: "12/6/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggplot2)
+```
+
+## Data Cleaning and Transformation
+
+The code belows cleans and transforms the original dataset from the website.
+```{r , eval = FALSE}
+# Large file, code not ran
+amsterdam <- read_csv('listingsamsterdam.csv')
+
+amsterdam <- select(amsterdam, price, review_scores_rating, host_since, 
+                    host_is_superhost, neighbourhood_cleansed, host_listings_count,
+                    host_identity_verified, room_type,
+                    bathrooms, bedrooms, minimum_nights,
+                    number_of_reviews, cancellation_policy, instant_bookable,                             accommodates, weekly_price, monthly_price, cleaning_fee)
+
+# Data transformation
+amsterdam$price <- as.numeric(gsub('\\$|,', '', amsterdam$price))
+amsterdam$weekly_price <- as.numeric(gsub('\\$|,', '', amsterdam$weekly_price))
+amsterdam$monthly_price <- as.numeric(gsub('\\$|,', '', amsterdam$monthly_price))
+amsterdam$cleaning_fee <- as.numeric(gsub('\\$|,', '', amsterdam$cleaning_fee))
+
+amsterdam$host_since <- as.Date(amsterdam$host_since)
+amsterdam <- mutate(amsterdam, host_is_superhost = ifelse(host_is_superhost == TRUE, 1 , 0)) 
+amsterdam <- mutate(amsterdam, host_identity_verified = ifelse(host_identity_verified == TRUE, 1 , 0)) 
+
+amsterdam$location_3ways <- ifelse(amsterdam$neighbourhood_cleansed == 'Centrum-West' | 
+                                     amsterdam$neighbourhood_cleansed == 'Centrum-Oost' |
+                                     amsterdam$neighbourhood_cleansed == 'Zuid', "near_centre",
+                                   ifelse(amsterdam$neighbourhood_cleansed == 'Bijlmer-Oost' | 
+                                            amsterdam$neighbourhood_cleansed == 'Gaasperdam - Driemond' |
+                                            amsterdam$neighbourhood_cleansed == 'Bijlmer-Centrum' | 
+                                            amsterdam$neighbourhood_cleansed == 'Osdorp' |
+                                            amsterdam$neighbourhood_cleansed == 'Geuzenveld - Slotermeer' | 
+                                            amsterdam$neighbourhood_cleansed == 'Slotervaart' |
+                                            amsterdam$neighbourhood_cleansed == 'De Aker - Nieuw Sloten' | 
+                                            amsterdam$neighbourhood_cleansed == 'Bos en Lommer' |
+                                            amsterdam$neighbourhood_cleansed == 'Noord-Oost' | 
+                                            amsterdam$neighbourhood_cleansed == 'Noord-West' |
+                                            amsterdam$neighbourhood_cleansed == 'Oostelijk Havengebied - Indische Buurt', 
+                                          "far_from_centre", "Moderate"))
+
+amsterdam$realprice <- rep(NA, length(amsterdam$price))
+
+for (i in 1:length(amsterdam$realprice)){
+  if (amsterdam$minimum_nights[i] > 27){
+    if (!is.na(amsterdam$monthly_price[i])){
+    amsterdam$realprice[i] <- amsterdam$monthly_price[i]/30
+    } else {
+      amsterdam$realprice[i] <- amsterdam$price[i]  
+    }
+  } else if (amsterdam$minimum_nights[i] > 6) {
+    if (!is.na(amsterdam$weekly_price[i])){
+    amsterdam$realprice[i] <- amsterdam$weekly_price[i]/7
+    } else {
+      amsterdam$realprice[i] <- amsterdam$price[i]
+    }
+  } else {
+  amsterdam$realprice[i] <- amsterdam$price[i]
+  }
+}
+
+# review_scores_rating has 2565 NA's, 
+# cleaning_fee 3611 NA's, removing those NAs after removing r_s_r NA's leads to a drop of ~2000 observations, maybe not worth it
+# amsterdam <- filter(amsterdam, !is.na(cleaning_fee))
+
+# 5 NAs in host_since, 5 NAs in host_is_superhost, 5 NAs in host_listingscount
+# Host response rate and time have 8536 NA's, removed them 
+# Experiences_offered contains only none, removed it
+# 33 types of property, removed it
+
+# Did not manage to convert host_verifications, removed it
+# Mininum nights has maximum of 1001 (outlier I suppose)
+# 5 types of cancellation policy
+# 7NAs bathrooms, 14NAs bedrooms, 8 NAs beds
+
+drops <- c("weekly_price", "monthly_price")
+amsterdam <- amsterdam[ , !(names(amsterdam) %in% drops)]
+
+# Michael - Add in host's "age" on AirBnb
+Date_scrap <- as.Date("14/09/19","%d/%m/%y")
+amsterdam$host_since_duration <- Date_scrap-amsterdam$host_since
+
+amsterdam <- drop_na(amsterdam) 
+check <- amsterdam[amsterdam$realprice < 1,] # There is an outlier with price = 0
+
+amsterdam <- amsterdam[amsterdam$realprice > 1,]
+
+amsterdam$logprice <- log(amsterdam$realprice)
+
+```
+
+## EDA
+
+```{r}
+amsterdam <- read_csv('st443_final_data')
+# Based on boxplots, there are too many outliers at different price points to be taken out. 
+# Histograms of numeric variables shows that all are skewed. There is no right way to set limits
+# Using logprice transformation however, removes skewness in price. Subsequent OLS shows no outliers upon regression
+# Using price as the y variable, plot residuals/leverage and identify 2 outliers, 
+# they were remove and OLS re-iterated, with more outliers. It will be too long a process. 
+
+# ------------------------------------------------------------------------------------
+# Price
+# Using Laurens ggplots:
+ggplot(amsterdam, aes(logprice)) + 
+  geom_freqpoly(stat='density') + xlim(0,10)
+# log transformation of price result in a less skewed variable "price" without losing any data points
+
+#boxplot of location vs price
+
+ggplot(amsterdam, aes(x=location_3ways, y=logprice)) + 
+  geom_boxplot(outlier.colour="dark blue", outlier.shape=16,
+               outlier.size=2, notch=TRUE)
+# lesser outliers detected using boxplot of logprice / location
+
+#boxplot of room_type vs price
+ggplot(amsterdam, aes(x=room_type, y=logprice)) + 
+  geom_boxplot(outlier.colour="red", outlier.shape=16, outlier.size=2, notch=TRUE)
+# lesser outliers detected using boxplot of logprice / location
+
+#boxplot of cancellation_policy vs price
+ggplot(amsterdam, aes(x=cancellation_policy, y=logprice)) + 
+  geom_boxplot(outlier.colour="green", outlier.shape=16, outlier.size=2, notch=TRUE)
+# lesser outliers detected using boxplot of logprice / location
+
+#histograms of numeric variables
+par(mfrow=c(2,2))
+hist(amsterdam$review_scores_rating)
+hist(amsterdam$bathrooms)
+hist(amsterdam$bedrooms)
+hist(amsterdam$number_of_reviews)
+# As expected, all are skewed. 
+
+#Using log price - interpretation of coefficients will be different 
+logPrice_ols <- lm(logprice ~ review_scores_rating + host_is_superhost +  
+                  host_listings_count + host_identity_verified + 
+                  room_type + bathrooms + bedrooms + 
+                  minimum_nights + number_of_reviews + cancellation_policy + 
+                  instant_bookable + host_since_duration + location_3ways + cleaning_fee, data=amsterdam)
+summary(logPrice_ols)
+
+plot(logPrice_ols) # no outliers
+
+# Descriptive statistics command
+lapply(amsterdam, summary)
+
+# DATA EXPLORATION
+
+#amsterdam %>% count(neighbourhood_cleansed) %>% arrange(desc(n)) %>% print(n=30)
+amsterdam %>% count(room_type) %>% arrange(desc(n)) %>% print(n=30)
+amsterdam %>% count(cancellation_policy) %>% arrange(desc(n)) %>% print(n=30)
+
+# mean review rating is 95... extremely skewed and probably uninteresting density
+ggplot(amsterdam, aes(review_scores_rating)) + 
+  geom_freqpoly(stat='density') + xlim(0,100)
+
+ggplot(amsterdam, aes(bathrooms)) + 
+  geom_freqpoly(stat='density') 
+
+ggplot(amsterdam, aes(bedrooms)) + 
+  geom_freqpoly(stat='density') 
+
+# skewed to the right
+ggplot(amsterdam, aes(number_of_reviews)) + 
+  geom_freqpoly(stat='density')  + xlim(0,50)
+
+# Useless variables, will not add much
+ggplot(amsterdam, aes(host_listings_count)) + 
+  geom_freqpoly(stat='density') + xlim(0,20)
+
+# Not sure if interesting
+ggplot(amsterdam, aes(minimum_nights)) + 
+  geom_freqpoly(stat='density') + xlim(0,20)
+
+# make three/four neighbourhoods in terms of price?
+#amsterdam %>% group_by(neighbourhood_cleansed) %>% 
+#  summarise(price = mean(price), avgrating = mean(review_scores_rating), n = n()) %>% #arrange(desc(price)) %>%  print(n=33)
+
+# cancellation relevant interms of price
+amsterdam %>% group_by(cancellation_policy) %>% 
+  summarise(price = mean(logprice), avgrating = mean(review_scores_rating), n = n()) %>% arrange(desc(price))
+
+# room_type significant differences (in terms of price)
+amsterdam %>% group_by(room_type) %>% 
+  summarise(price = mean(logprice), avgrating = mean(review_scores_rating), n = n()) %>% arrange(desc(price))
+
+# instant_bookable provides no information in terms of price and rating
+amsterdam %>% group_by(instant_bookable) %>% 
+  summarise(price = mean(logprice), avgrating = mean(review_scores_rating), n = n()) %>% arrange(desc(price)) 
+```
+
+## Best Subset Selection, NICE assumptions check
+
+```{r}
+#split the data into training and testing dataset
+#airbnb1 take out realprice and X columns
+#amsterdam <- read_csv('st443_final_data')
+airbnb1 = subset(amsterdam, select = -c(1,15))
+traingsize = floor(0.7*nrow(airbnb1))
+set.seed(123)
+train_ind = sample(seq_len(nrow(airbnb1)),size = traingsize)
+train=airbnb1[train_ind,]
+test=airbnb1[-train_ind,]
+
+airbnb <- amsterdam
+attach(airbnb)
+str(airbnb)
+reg1 = lm(logprice ~., train)
+summary(reg1)
+library(leaps)
+reg2=regsubsets(logprice~.,nvmax = 20,data = train)
+plot(reg2, scale = "adjr2")
+summary(reg2)
+plot(reg2, scale = "bic")
+outbs=summary(reg2)
+which.max(outbs$adjr2)
+which.min(outbs$bic)
+#check multicollinearity
+library(car)
+vif(reg1)
+airbnb2 = subset(train, select = -c(host_identity_verified))
+reg3 = lm(logprice~., airbnb2)
+vif(reg3)
+summary(reg3)
+#calculate MSE
+#predictedvalues = predict(reg3, newdata = test)
+#plot(predictedvalues, test$logprice)
+#MSE1 = mean((predictedvalues-test$logprice)^2)
+##other variable selection method
+#step1 = stepAIC(reg1, direction = "both")
+#summary(step1)
+```
+
+## Shrinkage
+# Ridge
+```{r echo = FALSE}
+amsterdam <- read_csv('st443_final_data')
+amsterdam <- amsterdam[,-c(1,15)]
+```
+
+```{r cars, warning=FALSE, message=FALSE}
+suppressMessages(library(glmnet))
+
+#amsterdam <- read_csv('st443_final_data')
+#amsterdam <- amsterdam[,-c(1,15)]
+
+# glmnet does not use formula language
+x <- model.matrix(logprice ~ ., data = amsterdam)
+y <- amsterdam$logprice
+
+fit.ridge <-glmnet(x, y, alpha=0)
+
+# 8, 7, 15, 20, 16 most important vars
+plot(fit.ridge, xvar="lambda", label= TRUE)
+plot(fit.ridge, xvar="dev", label= TRUE)
+
+cv.ridge <-cv.glmnet(x, y, alpha=0)
+
+## Plot of CV mse vs log (lambda), small lambda is best
+plot(cv.ridge)
+## Coefficent vector corresponding to the mse which is within 
+# one standard error of the lowest mse using the best lambda.
+coef(cv.ridge)
+
+## Coefficient vector corresponding to the lowest mse using the best lambda
+coef(glmnet(x,y,alpha=0, lambda=cv.ridge$lambda.min))
+
+# finding MSE
+traingsize = floor(0.7*nrow(amsterdam))
+set.seed(123)
+train = sample(seq_len(nrow(amsterdam)),size = traingsize)
+
+ridge.train <-glmnet(x[train,], y[train], alpha = 0)
+pred.test.ridge <-predict(ridge.train, x[-train,])
+dim(pred.test.ridge)
+rmse.ridge <-sqrt(apply((y[-train]-pred.test.ridge)^2,2,mean))
+plot(log(ridge.train$lambda), rmse.ridge, type="b", xlab="Log(lambda)")
+lambda.best.ridge <- ridge.train$lambda[order(rmse.ridge)[1]]
+lambda.best.ridge
+mseRidge <- min(rmse.ridge)
+mseRidge
+```
+# Lasso
+
+```{r}
+fit.lasso <- glmnet(x,y)
+plot(fit.lasso, xvar="lambda", label= TRUE)
+plot(fit.lasso, xvar="dev", label= TRUE)
+cv.lasso <-cv.glmnet(x, y)
+# Again, 8, 15, 7, 20. 
+
+plot(cv.lasso)
+
+# Use very small lambda, again
+## coefficent vector corresponding to the mse which is within 
+# one standard error of the lowest mse using the best lambda.
+coef(cv.lasso)
+## coefficient vector corresponding to the lowest mse using the best lambda
+coef(glmnet(x,y, lambda=cv.lasso$lambda.min))
+
+## test MSE
+lasso.train <-glmnet(x[train,], y[train])
+pred.test <-predict(lasso.train, x[-train,])
+dim(pred.test)
+rmse <-sqrt(apply((y[-train]-pred.test)^2,2,mean))
+plot(log(lasso.train$lambda), rmse, type="b", xlab="Log(lambda)")
+lambda.best <-lasso.train$lambda[order(rmse)[1]]
+lambda.best
+mseLasso <- min(rmse)
+mseLasso
+```
+
+## Trees 
+Codes: Generate training and testing set
+```{r}
+set.seed(123)
+trainingsize <- floor(0.7 * nrow(amsterdam))
+trainindex <- sample(seq_len(nrow(amsterdam)), size = trainingsize)
+levels(amsterdam$room_type)
+train_df <- amsterdam[trainindex,]
+test_df <- amsterdam[-trainindex,]
+```
+
+Codes: Decision tree - base model and plots
+7 terminal nodes, bedrooms/roomtype+bathroom/location in order of tree hierachy
+```{r Decision Tree, echo=FALSE}
+library(tree)
+library(randomForest)
+tree.final_data_log <- tree(logprice ~ review_scores_rating + host_is_superhost +  
+                              host_listings_count + host_identity_verified + 
+                              room_type + bathrooms + bedrooms + 
+                              minimum_nights + number_of_reviews + cancellation_policy + 
+                              instant_bookable + host_since_duration + location_3ways + 
+                              cleaning_fee,  data = train_df)
+summary(tree.final_data_log)
+plot(tree.final_data_log)
+text(tree.final_data_log)
+```
+
+Codes: Cross-validation on base decision tree
+Choose 3 terminal nodes as the decrease in deviation from 3 nodes onwards is minimal. 
+```{r CV, echo=FALSE}
+cv.final_data_log <- cv.tree(tree.final_data_log, K=10)
+plot(cv.final_data_log$size, cv.final_data_log$dev, type = "b") 
+```
+
+Codes: Plot of Prune tree
+```{r Prune Tree, echo=FALSE}
+prune.tree_final_data_log <- prune.tree(tree.final_data_log, best = 3)
+summary(prune.tree_final_data_log)
+plot(prune.tree_final_data_log)
+text(prune.tree_final_data_log)
+```
+
+Codes: Generate predicted value of log price on test_df and calculate MSE (0.1748343)
+```{r}
+yhat_log <- predict(prune.tree_final_data_log, newdata = test_df)
+tree_final_data_log.test <- test_df[,"logprice"]
+
+## Compute the test MSE
+mean((yhat_log - tree_final_data_log.test)^2)
+```
+
+Codes: Use of bagging, m=14
+Compare MSE of bagged tree (0.1318838), lower than base decision tree of 0.1748343
+Var Imp Plot shows that bedrooms, room type, cleaning fee, locations (in priorities) are the main factors [Note: bedroom is >100%]
+
+```{r echo=TRUE, eval = FALSE}
+bag.final_data_log <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=14, importance=TRUE)
+bag.final_data_log
+
+yhat_log.bag <- predict(bag.final_data_log, newdata = test_df)
+
+## Compute the test MSE
+mean((yhat_log.bag - tree_final_data_log.test)^2)
+# 0.1318838 MSE
+importance(bag.final_data_log)
+varImpPlot(bag.final_data_log)
+```
+
+Codes: Random forest with n.tree = 5000. 
+With 14 features, 3 different random forest models with varying "m" are run ==> m=sqrt(14), m=7 (14/2), and m = 4 (14/3) 
+
+m = sqrt(14): MSE = 0.1290447
+m = 7 (14/2): MSE = 0.1305521
+m = 4 (14/3): MSE = 0.1290447
+```{r echo=TRUE, eval = FALSE}
+set.seed(123)
+forest.final_data_m1 <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=sqrt(14), importance=TRUE,
+                                 n.tree = 5000)
+forest.final_data_m1
+
+## Predicted values on the testing data
+yhat.forest_m1 <-predict(forest.final_data_m1, newdata=test_df)
+
+## Compute the test MSE
+mean((yhat.forest_m1 - tree_final_data_log.test)^2)
+# MSE of 0.1290447
+```
+
+
+```{r echo=TRUE, eval = FALSE}
+set.seed(123)
+forest.final_data_m2 <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=7, importance=TRUE,
+                                 n.tree = 5000)
+forest.final_data_m2
+
+## Predicted values on the testing data
+yhat.forest_m2 <-predict(forest.final_data_m2, newdata=test_df)
+
+## Compute the test MSE
+mean((yhat.forest_m2 - tree_final_data_log.test)^2)
+# MSE of 0.1305521
+```
+
+```{r echo=TRUE, eval = FALSE}
+set.seed(123)
+forest.final_data_m3 <- randomForest(logprice ~ review_scores_rating + host_is_superhost +  
+                                 host_listings_count + host_identity_verified + 
+                                 room_type + bathrooms + bedrooms + 
+                                 minimum_nights + number_of_reviews + cancellation_policy + 
+                                 instant_bookable + host_since_duration + location_3ways + 
+                                 cleaning_fee,  data = train_df, mtry=4, importance=TRUE,
+                                 n.tree = 5000)
+forest.final_data_m3
+
+## Predicted values on the testing data
+yhat.forest_m3 <-predict(forest.final_data_m3, newdata=test_df)
+
+## Compute the test MSE
+mean((yhat.forest_m3 - tree_final_data_log.test)^2)
+# MSE of 0.1290447
+```
+
+Codes: Boosting with n.tree = 5000. 
+2 different boosting models with varying depth -> depth=4 and depth =6
+
+Boosting depth = 4: MSE: 0.1383925 ==> relative influence of host_since_duration followed by bedrooms are the highest
+Boosting depth = 6: MSE: 0.1435316 ==> relative influence of host_since_duration followed by bedrooms remains the highest
+```{r echo=TRUE, eval = FALSE}
+library(gbm)
+set.seed (123)
+train_df$instant_bookable <- factor(train_df$instant_bookable)
+boost.log1 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+                      host_listings_count + host_identity_verified + 
+                      room_type + bathrooms + bedrooms + 
+                      minimum_nights + number_of_reviews + cancellation_policy + 
+                      instant_bookable + host_since_duration + location_3ways + 
+                      cleaning_fee, data = train_df, distribution = "gaussian",
+                    n.trees = 5000, interaction.depth = 4)
+summary(boost.log1)
+
+## Predicted values on the testing data
+yhat.boost1 <- predict(boost.log1, newdata = test_df, n.trees = 5000)
+
+## Compute the test MSE
+mean((yhat.boost1 - tree_final_data_log.test) ^ 2)
+#MSE of 0.1383925
+```
+
+```{r echo=TRUE, eval = FALSE}
+set.seed (123)
+train_df$instant_bookable <- factor(train_df$instant_bookable)
+boost.log2 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+                    host_listings_count + host_identity_verified + 
+                    room_type + bathrooms + bedrooms + 
+                    minimum_nights + number_of_reviews + cancellation_policy + 
+                    instant_bookable + host_since_duration + location_3ways + 
+                    cleaning_fee, data = train_df, distribution = "gaussian",
+                  n.trees = 5000, interaction.depth = 6)
+summary(boost.log2)
+
+## Predicted values on the testing data
+yhat.boost2 <- predict(boost.log2, newdata = test_df, n.trees = 5000)
+
+## Compute the test MSE
+mean((yhat.boost2 - tree_final_data_log.test) ^ 2)
+#MSE of 0.1435316
+```
+
+```{r echo=TRUE, eval = FALSE}
+set.seed (123)
+train_df$instant_bookable <- factor(train_df$instant_bookable)
+boost.log3 <- gbm( logprice ~ review_scores_rating + host_is_superhost +  
+                    host_listings_count + host_identity_verified + 
+                    room_type + bathrooms + bedrooms + 
+                    minimum_nights + number_of_reviews + cancellation_policy + 
+                    instant_bookable + host_since_duration + location_3ways + 
+                    cleaning_fee, data = train_df, distribution = "gaussian",
+                  n.trees = 5000, interaction.depth = 2)
+summary(boost.log3)
+
+## Predicted values on the testing data
+yhat.boost3 <- predict(boost.log3, newdata = test_df, n.trees = 5000)
+
+## Compute the test MSE
+mean((yhat.boost3 - tree_final_data_log.test) ^ 2)
+#MSE of 0.1318706
+```
+
+## GAM
+Code below.
+```{r,eval = FALSE}
+library("gam")
+
+poly1 = lm(logprice~poly(bedrooms,4), data = airbnb1)
+summary(poly1)
+poly2 = lm(logprice~poly(bathrooms,3),data = airbnb1)
+summary(poly2)
+poly3 = lm(logprice ~ poly(number_of_reviews,4),data = airbnb1)
+summary(poly3)
+plot(bathrooms, logprice)
+
+#gam1 is trying natural spline
+gam1 = lm(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam1)
+#gam1p is trying smooth spline
+gam1p = lm(logprice ~ s(bedrooms,4)+s(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam1p)
+
+bestgam = regsubsets(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration,nvmax=20 ,train)
+plot(bestgam, scale = "adjr2")
+
+gam2 = lm(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+room_type+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
+summary(gam2)
+#calculate MSE(gam)
+predictedvalues1 = predict(gam2, newdata = test)
+plot(predictedvalues1, test$logprice)
+MSE2 = mean((predictedvalues1-test$logprice)^2)
+#We can see that the MSE is around 0.1338, slightly worse than the previous method.
+
+gam3 = lm(logprice ~ ns(bedrooms,4), test)
+plot(gam3)
+shapiro.test(gam3$residuals)
+```
+
+## Neural Networks
+
+```{r, eval = FALSE }
+# NN - Part 1: Data transformation
+#amsterdam <- read.csv("st445_final_data", header = T)
+
+amsterdam <- amsterdam[,-1]
+#dummify the data
+amsterdam <- mutate(amsterdam,
+                    instant_bookable = ifelse(instant_bookable == TRUE, 1, 0))
+#output_vector = amsterdam[,'logprice']
+amsterdam <- fastDummies::dummy_cols(amsterdam)
+#amsterdam <- amsterdam[,-c(5,10,13,14,22,26)]
+amsterdam <- amsterdam[,-c(5,10,13,14)]
+
+# Set training and testing dataset
+set.seed(123)
+trainingsize <- floor(0.7 * nrow(amsterdam))
+trainindex <- sample(seq_len(nrow(amsterdam)), size = trainingsize)
+
+train_df <- amsterdam[trainindex,]
+test_df <- amsterdam[-trainindex,]
+
+# split up train features(x) and train targets(y)
+train_data <- as.matrix(train_df[,-12])
+train_targets <- as.array(train_df[,12])
+
+# split up test features(x) and test targets(y)
+test_data <- as.matrix(test_df[,-12])
+test_targets <- as.array(test_df[,12])
+
+#Scale the data so that all variables are between 0 and 1
+
+mean <- apply(train_data, 2, mean)
+std <- apply(train_data, 2, sd)
+train_data <- scale(train_data, center = mean, scale = std)
+test_data <- scale(test_data, center = mean, scale = std)
+```
+
+```{r, eval = FALSE}
+
+# NN - PArt 2: Build neural network model
+build_model <- function() {
+  model <- keras_model_sequential() %>% 
+    layer_dense(units = 16, activation = "relu", 
+                input_shape = dim(train_data)[[2]]) %>% 
+    layer_dense(units = 16, activation = "relu") %>% 
+    layer_dense(units = 1) # single node because it is a regression ML
+  
+  model %>% compile(
+    optimizer = "rmsprop", 
+    loss = "mse", 
+    metrics = c("mae")
+  )
+}
+```
+
+```{r, eval = FALSE}
+# NN - Part 3 - change the number of learning iterations, i.e "num_epochs", with 10 and 50
+all_scores <- c()
+num_epochs <- 50
+
+# Build the Keras model (already compiled)
+model <- build_model()
+summary(model)
+# Train the model (in silent mode, verbose=0)
+model %>% fit(train_data, train_targets,
+                epochs = num_epochs, batch_size = 1, verbose = 0)
+  
+# Evaluate the model on the validation data
+results <- model %>% evaluate(test_data, test_targets, verbose = 0)
+#all_scores <- c(all_scores, results$mean_absolute_error)
+all_scores <- c(all_scores, results$loss)
+#MSE: 0.149141778 using num_epoch = 10, batch size=1
+#MSE: 0.15116772 using num_epoch = 50, batch size=1
+```
+
+## XGBoost
+
+```{r}
+library(dplyr)
+library(xgboost)
+library(stringr)
+library(caret)
+library(car)
+library(fastDummies)
+library(ModelMetrics)
+
+#amsterdam <- read_csv('st443_final_data')
+#amsterdam <- amsterdam[,-c(1,15)]
+
+amsterdam <- mutate(amsterdam,
+                    instant_bookable = ifelse(instant_bookable == TRUE, 1, 0))
+
+amsterdam <- fastDummies::dummy_cols(amsterdam)
+amsterdam <- amsterdam[,-c(5,10,13,16,22,26)]
+
+
+traingsize = floor(0.7*nrow(amsterdam))
+set.seed(123)
+trainindex = sample(seq_len(nrow(amsterdam)),size = traingsize)
+
+train_df <- amsterdam[trainindex,]
+test_df <- amsterdam[-trainindex,]
+
+trainmatrix <- as.matrix(train_df, rownames.force = NA)
+testmatrix <- as.matrix(test_df, rownames.force = NA)
+dtrain <- as(trainmatrix, "sparseMatrix")
+dtest <- as(testmatrix, "sparseMatrix")
+
+train_data <- xgb.DMatrix(data = dtrain[,-12], label = dtrain[,"logprice"])
+test_data <- xgb.DMatrix(data = dtest[,-12])
+
+xgb_grid = expand.grid(
+  nrounds = 1000,
+  eta = c(0.1, 0.05, 0.01),
+  max_depth = c(2, 3, 4, 5, 6),
+  gamma = 0,
+  colsample_bytree=1,
+  min_child_weight=c(1, 2, 3, 4 ,5),
+  subsample=1
+)
+
+my_control <-trainControl(method="cv", number=5)
+
+# Not run, takes ages
+#xgb_caret <- train(x = train_df[-12], y = train_df$logprice, 
+#                   method='xgbTree', trControl= my_control, 
+#                   tuneGrid = xgb_grid) 
+#xgb_caret$bestTune
+# nrounds = 1000, max_depth = 5, eta = 0.01, min_child_weight = 1
+
+#xgb_tune <-train(logprice ~.,
+#                 data = train_df,
+#                 method="xgbLinear",
+#                 metric = "RMSE",
+#                 trControl = cv.ctrl,
+#                 tuneGrid = xgb.grid
+#)
+
+default_param <- list(
+  objective = "reg:linear",
+  booster = "gbtree",
+  eta=0.01, #default = 0.3
+  gamma=0,
+  max_depth=5, #default=6
+  min_child_weight=1, #default=1
+  subsample=1,
+  colsample_bytree=1
+)
+
+#xgbcv <- xgb.cv( params = default_param, 
+#                 data = dtrain, nrounds = 2000, 
+#                 nfold = 5, 
+#                 showsd = T, 
+#                 stratified = T, 
+#                 print_every_n = 40, 
+#                 early_stopping_rounds = 10, 
+#                 maximize = F,
+#                 label = dtrain[,"logprice"])
+
+xgb_mod <- xgb.train(data = train_data, params = default_param, nrounds = 1300)
+XGBpred <- predict(xgb_mod, test_data)
+rmse <- rmse(test_df$logprice,XGBpred)
+
+library(Ckmeans.1d.dp) #required for ggplot clustering
+mat <- xgb.importance(feature_names = colnames(train_df[-12]),model = xgb_mod)
+xgb.ggplot.importance(importance_matrix = mat[1:20], rel_to_first = TRUE)
+```
+

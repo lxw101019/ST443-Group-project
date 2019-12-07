@@ -1,6 +1,8 @@
 library(glasso)
+library(qgraph)
 
-sampleData <- simulation(p = 50, n = 1000)
+set.seed(123)
+sampleData <- simulation(p = 20, n = 1000)
 trueTheta <- sampleData$standardtheta
 
 trainIndex <- sample(seq(nrow(sampleData$data)), floor(nrow(sampleData$data))/2, replace=FALSE)
@@ -20,8 +22,8 @@ for(rhos in seq(0,0.2,0.0001)){
   ll$rho[count] <- rhos
 }
 
-which.max(ll$logl)
-glassoGood <- glasso(sAll, ll$rho[506])
+index <- which.max(ll$logl)
+glassoGood <- glasso(sAll, ll$rho[index])
 
 true <- true_edge(trueTheta)
 modelfit <- true_edge(glassoGood$wi)
@@ -33,9 +35,8 @@ ebic <- EBICglasso(s, n = 500, returnAllResults = TRUE,
                    nlambda = 1000, lambda.min.ratio = 0.001, gamma = 0.5, threshold = TRUE)
 optLambdaEBIC <- ebic$lambda[which.min(ebic$ebic)]
 optMatrixEBIC <- ebic$optnet
-glassotry <- glasso(s, rho = 0.1)
 
-EBICgraph <- qgraph(glassotry$wi, layout = "spring", title = "EBIC")
+EBICgraph <- qgraph(glassoGood$wi - diag(diag(glassoGood$wi)), layout = "spring", title = "EBIC")
 
 # log det theta - trace(S theta)
 

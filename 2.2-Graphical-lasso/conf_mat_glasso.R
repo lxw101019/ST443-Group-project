@@ -1,11 +1,3 @@
-# This is the code for generating confusion matrix/ROC curve point based on given edtimated edge table and true edge table.
-# 
-# Arguments:1. estimate_edge: the TRUE/FALSE table from edgetable.R
-#           2. trueEdge: the TRUE/FALSE table from trueEdge.R
-#           3. estimate_way: input 'both' or 'either' here. 'both' stands for E_1 estimator. 'either' stands for E_2 estimator.
-#
-# Retutn: 1.confusion: a list. Use list$TP/FP/FN/TN/TP_rate/FP_rate to get each confusion element or ROC curve point
-#
 confusion_matrix <- function(estimate_edge, trueEdge){
   numOfDims <- nrow(estimate_edge)
   confusion <- list(TP = 0,FP = 0,FN = 0,TN = 0,TP_rate = 0,FP_rate = 0)
