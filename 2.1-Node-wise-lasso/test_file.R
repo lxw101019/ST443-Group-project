@@ -1,4 +1,4 @@
-#This file is a test file for showing the whole process of nodewise lasso.
+# This file is a test file for showing the whole process of nodewise lasso.
 
 # This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
 # here p=50 and n = 100
@@ -14,7 +14,10 @@ testtheta <-testsample$standardtheta
 # This is a validation-set approach.
 # choose the lambda cause least RMSE
 lambda_rmse <- rmse_best_lambda(testdata)
-lambda_cv <- cv_best_lambda(testdata)
+# use crossvalidation with lambda correspond to lowest MSE
+lambda_cv_MIN <- cv_best_lambda(testdata,10,"MIN")
+# cv with lambda correspond to point with lower number of varaibles, within 1se of the best lambda we just calculated.
+lambda_CV_1SE <- cv_best_lambda(testdata,10,"1SE")
 
 #This function use the thets to generate the "real" edge for reference later
 trueedge <- true_edge(testtheta)
@@ -49,10 +52,4 @@ ggplot()+geom_step(data=E2_roc,mapping = aes(FPR, TPR,colour = 'E_2: either'))+
 library("DescTools")
 AUC(E2_roc$FPR,E2_roc$TPR,method="step")
 AUC(E1_roc$FPR,E1_roc$TPR,method="step")
-
-
-
-
-
-
 
