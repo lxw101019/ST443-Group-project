@@ -1,0 +1,47 @@
+---
+title: "Introduction of glasso"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The basis of glasso
+The graphical lasso method is used to solve the problem of estimating sparse graph by a lasso(L1) penalty applied to the inverse covariance matrix. This method is remarkably fast compared to other similar methods: it can solve a 1000-node problem in at most a minute and is 30-4000 times faster than competing methods. 
+
+Provided that we have n multivariate normal observations $$(x_{1},...x_{n})$$ of dimension $$p$$, with mean $$\mu$$ and covariance $$\Sigma$$, and let $$S$$ be the empirical covariance matrix, $$S=\sum_{i=1}^{n}(x_{1}-\bar{x})(x_{i}-\bar{x})^{T}$$. And our problem is to maximize the penalized log-likelihood $$log det\theta-trace(S\Theta)+\lambda\left \| \Theta \right \|_{1}\tag{1}$$, over nonnegative covariance definite matrix $$\Theta$$. Here, the last term is the L1 norm-the sum of the absolute values of the elements $$\Sigma^{-1}$$ and $$\lambda$$ is the tuning parameter. This expression is the Gaussian log-likelihood of the data, partially maximized with respect to mean parameter $$\mu$$. 
+Banerjeeand others(2007) show that the problem (1) is convex and consider estimation of $$\Sigma$$ as follows. Let $$W$$ be the estimate of $$\Sigma$$. They show that one can solve the problem by optimizing over each row and corresponding column of $$W$$ in a block coordinate descent fashion. Partitioning $$W$$ and $$S$$, $$W=\begin{equation}\left(                \begin{array}{cc}  
+W_{11} & w_{12}\\  
+(w_{12})^{T} & w_{22}\\  
+\end{array}
+\right)                
+\end{equation}$$
+$$S=\begin{equation}\left(                \begin{array}{cc}  
+S_{11} & s_{12}\\  
+(s_{12})^{T} & s_{22}\\  
+\end{array}
+\right)                
+\end{equation}$$
+they show that the solution for $$w_{12}$$ satisfies $$w_{12}=argmin_{y}\{{y^{T}}W_{11}^{-1}y:\left \| y-s_{12} \right \|_{\infty}\leq \lambda\}\tag{2}$$
+They splve a problem like (2) for each column, updating their estimate of $$W$$ after each stage. This is repeated until convergence. If this procedure is initialized with a positive definite matrix, they show that the iterates from this procedure remains positive definite and invertible, even if $$p>N$$.
+Using convex duality, Banerjeeand others(2007) go on to show that solving (2) is equivalent to solving the dual problem $$min\beta$$.
+$$min_{\beta}\{\frac{1}{2}\left \| W_{11}^{1/2}\beta-b \right \|^{2}+\lambda\left \| \beta \right \|_{1}\}\tag{3}$$, where $$b=W_{11}^{-1/2}s_{12}$$ If $$\beta$$ solves (3), then $$w_{12}=W_{11}\beta$$ solves (2). Expression (3) resembles a lasso regression and is the basis for our approach.
+
+In this way, the graphical lasso approach considers maximizing the log-likelihood function over all symmetric positive matricies $$\Theta\in\mathbb{R}^{p\times p}$$ and provide a sparse estimate, $$\hat{\Theta}$$.
+
+
+## Graphical lasso algorithm
+1. Start with $$W=S+\lambda I$$. The diagonal of $$W$$ remains unchanged in what follows.
+2. For each $$j=1,2,...p,1,2,...p,...$$, solve the lasso problem (2.4), which takes as input the inner products $$W_{11}$$ and $$s_{12}$$. This gives a $$p???1$$ vector solution $$\hat{\beta}$$. Fill in the corresponding row and column of $$W$$ using $$w_{12}=W_{11}\hat{\beta}$$.
+3. Continue until convergence.
+
+
+Reference: Jerome Friedman, Trevor Hastie and Rob Tibshirani(2007) "Sparse inverse covariance estimation withthe graphical lasso" 2
+BANERJEE,O.,GHAOUI,L.E.AND D¡¯ASPREMONT, A. (2007). "Model selection through sparse maximum likeli-hood estimation.Journal of Machine Learning Research101"
+Qiao Xinghao(2019) "ST443: Group Project Instruction"
+
+
+
+
+
