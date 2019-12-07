@@ -8,7 +8,7 @@ cv_best_lambda <- function(data,numOfFolds, MIN_1SE){
   library(glmnet)
   numOfRows <- nrow(data)
   numOfDims <- ncol(data)
-  
+
   lambda.best_list = rep(0,numOfDims)
   for (i in seq(numOfDims)){
     y <- (data[,i])
