@@ -5,4 +5,3 @@ true_edge <- function(theta){
   colnames(tf) <- seq(numOfDims)
   return(tf)
 }
-

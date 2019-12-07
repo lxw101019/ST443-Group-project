@@ -5,6 +5,7 @@ ROC_curve <- function(data_set, theta, lambdamin = 0, lambdamax = 1, lambdacount
   max_lambda = lambdamax
   min_lambda = lambdamin
   points <- data.frame(matrix(ncol = 3, nrow = lambdacount))
+  
   lambda_seq <- seq(from = min_lambda, to = max_lambda, length.out= lambdacount)
   #print(lambda_seq)
   points[,3] <- lambda_seq
