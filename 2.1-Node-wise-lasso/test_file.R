@@ -1,6 +1,12 @@
 # This file is a test file for showing the whole process of nodewise lasso.
 
 # This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
+library("DescTools")
+library(ggplot2)
+library(MASS)
+library(glmnet)
+library(matrixcalc)
+
 
 #set.seed(123)
 testsample <- simulation(50,100)
@@ -52,7 +58,7 @@ ggplot()+geom_step(data=E2_roc,mapping = aes(FPR, TPR,colour = 'E_2: either'))+
 #This is the AUC function.
 #here we can see that E2 method has higher AUC 0.7715, while it is  0.7394 for E1 method
 #install.packages("DescTools")
-library("DescTools")
+
 AUC(E2_roc$FPR,E2_roc$TPR,method="step")
 AUC(E1_roc$FPR,E1_roc$TPR,method="step")
 
@@ -64,7 +70,7 @@ E1_auc_list = rep(0,50)
 E2_auc_list = rep(0,50)
 
 for (i in seq(50)){
-  testsample <- simulation(250,1000)
+  testsample <- simulation(50,100)
   testdata <- testsample$data
   testtheta <-testsample$standardtheta
   E1_roc <- ROC_curve(testdata, testtheta,"both",100)

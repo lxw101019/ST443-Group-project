@@ -4,8 +4,9 @@
 #           2. numOfFolds: 5,10 or loocv. need to type in the exact integer.
 #           3. MIN_1SE : Input "MIN" or "1SE".
 # Retutn: 1.final: lambda. a number.
+library(glmnet)
 cv_best_lambda <- function(data,numOfFolds, MIN_1SE){
-  library(glmnet)
+
   numOfRows <- nrow(data)
   numOfDims <- ncol(data)
 

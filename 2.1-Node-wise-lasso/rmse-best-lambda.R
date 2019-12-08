@@ -6,8 +6,9 @@
 #
 # Retutn: 1.final: which is the best lambda,in each case of making X_i as response, there will be a lambda that minimised the test error.
 #                  In this case, the best lambda 'final' is the mean of these lambda. Further discussion needed here.
+library(glmnet)
 rmse_best_lambda <- function(data){
-  library(glmnet)
+  
   numOfRows <- nrow(data)
   numOfDims <- ncol(data)
   
