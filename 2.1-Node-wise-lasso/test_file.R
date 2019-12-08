@@ -3,7 +3,7 @@
 # This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
 # here p=50 and n = 100
 #set.seed(123)
-testsample <- simulation(100,125)
+testsample <- simulation(100,50)
 
 # testdata
 testdata <- testsample$data
