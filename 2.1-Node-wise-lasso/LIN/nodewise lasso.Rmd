@@ -67,7 +67,7 @@ As a result, each $\lambda$ will leads to a specific pair of $TPR_{\lambda}$ and
 ![Figure 2.3.2.1](2.3.2.1.png)
 </center>
 
-#### ROC Curve of different methods with same $\frac{p}{n}=1$ ratio.
+#### ROC Curve of different methods with same $\frac{p}{n}$ ratio.
 
 In this section, the ROC Curves of methods $\hat{E_{1}}$ and $\hat{E_{2}}$ will be compared in parallel with $p$ and $n$ being controlled.
 

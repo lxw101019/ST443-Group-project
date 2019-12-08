@@ -1,9 +1,9 @@
 # This file is a test file for showing the whole process of nodewise lasso.
 
 # This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
-# here p=50 and n = 100
+
 #set.seed(123)
-testsample <- simulation(100,50)
+testsample <- simulation(100,1000)
 
 # testdata
 testdata <- testsample$data
@@ -58,17 +58,12 @@ AUC(E1_roc$FPR,E1_roc$TPR,method="step")
 
 
 
-
-
-
-
-
 # 50 times setting for ROC COMPARISON
 E1_auc_list = rep(0,50)
 E2_auc_list = rep(0,50)
 
 for (i in seq(50)){
-  testsample <- simulation(100,50)
+  testsample <- simulation(250,1000)
   testdata <- testsample$data
   testtheta <-testsample$standardtheta
   E1_roc <- ROC_curve(testdata, testtheta,"both",100)
@@ -85,8 +80,24 @@ mean_E2_auc <- mean(E2_auc_list)
 
 
 
+#sapply attempt(it's actually not much faster, so..)
+E1_auc_list = rep(0,50)
+E2_auc_list = rep(0,50)
 
+sapply(seq(50), function(x){
+  testsample <- simulation(250,1000)
+  testdata <- testsample$data
+  testtheta <-testsample$standardtheta
+  E1_roc <- ROC_curve(testdata, testtheta,"both",100)
+  E2_roc <- ROC_curve(testdata, testtheta,"either",100)
+  E1_auc <- AUC(E1_roc$FPR,E1_roc$TPR,method="step")
+  E2_auc <- AUC(E2_roc$FPR,E2_roc$TPR,method="step")
+  E1_auc_list[x] <- E1_auc
+  E2_auc_list[x] <- E2_auc
+})
 
+mean_E1_auc <- mean(E1_auc_list)
+mean_E2_auc <- mean(E2_auc_list)
 
 
 
