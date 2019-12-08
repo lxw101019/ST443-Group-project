@@ -3,8 +3,8 @@ title: "Node wise Lasso - LIN"
 author: "LIN"
 date: "07/12/2019"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -61,11 +61,7 @@ Since the sparsity pattern in the $\boldsymbol{\Theta}$ identify the true edge s
 
 Finally,by making the results from `edge_table` and `true_edge` as arguments function `confusion_matrix(estimate_edge, trueedge, estimate_way)` will perform calculation of confumatrix and return relevant result including $TPR_{\lambda}$ and $FPR_{\lambda}$. Setting `estimate_way = "both"` will allow function perform the calculation through __node-wise Lasso 1__, while `estimate_way = "either"` makes it go through __node-wise Lasso 2__.
 
-As a result, each $\lambda$ will leads to a specific pair of $TPR_{\lambda}$ and $FPR_{\lambda}$, function `ROC_curve` automates this process by computing through all the lambda and return all the coordinates ($TPR_{\lambda}$,$FPR_{\lambda}$). _Figure 2.3.2.1_ indicates an example when $p=20,n=100$ based on both method $\hat{E_{1}}$ and $\hat{E_{2}}$.
-
-<center>
-![Figure 2.3.2.1](2.3.2.1.png)
-</center>
+As a result, each $\lambda$ will leads to a specific pair of $TPR_{\lambda}$ and $FPR_{\lambda}$, function `ROC_curve` automates this process by computing through all the lambda and return all the coordinates ($TPR_{\lambda}$,$FPR_{\lambda}$).
 
 #### ROC Curve of different methods with same $\frac{p}{n}$ ratio.
 
@@ -76,7 +72,7 @@ First of all, for $p=20$ and $n=1000$, which leads to the ratio $\frac{p}{n}=0.0
 Secondly, for $p=100$ and $n=100$, which leads to the ratio $\frac{p}{n}=1$, we have the following ROC curve (_Figure 2.3.2.3_). In this case, we have a low number of observations and also a relatively high $\frac{p}{n}$ ratio, both methods achieved a lower performance compared to the last case. In detail, $\hat{E_{1}}$ has $AUC=0.67574$ while $AUC=0.74338$ for $\hat{E_{2}}$.(Under 50-times iterations setting). Moreover, for $p=100$ and $n=200$, which corresponds to the ratio $\frac{p}{n}=2$, ROC curve(_Figure 2.3.2.4_) is plotted. $\hat{E_{1}}$ has $AUC=0.43343$ while $AUC=0.59768$ for $\hat{E_{2}}$.
 
 <center>
-![Figure 2.3.2.2](2.3.2.2.png) ![Figure 2.3.2.3](2.3.2.3.png) ![Figure 2.3.2.4](2.3.2.4.png)
+![Figure 2.3.2.2](2.3.2.2.png){width=200px} ![Figure 2.3.2.3](2.3.2.3.png){width=200px} ![Figure 2.3.2.4](2.3.2.4.png){width=200px}
 </center>
 
 In conclusion, by conducting more simulations on different $\frac{p}{n}$ settings, _Table 2.3.2.5_ is generated to show all the outcomes. __Obviously, by increasing the $\frac{p}{n}$ ratio from 0.02 to 2, Both $\hat{E_{1}}$ and $\hat{E_{2}}$ had their performance decreased over the ratio.__ When $\frac{p}{n}=0.02$, both methods achieved impressive performace which is larger than $AUC=0.99$. In the $n=p$ situation, Both methods perform worse than the last case, while $\hat{E_{1}}$'s AUC decreases 31.88% and AUC decreases 25.02% for $\hat{E_{2}}$ from $\frac{p}{n}=0.02$ case. In the end, if $\frac{p}{n}=2$, we can see that $AUC(\hat{E_{1}})$ dropped below 0.5 for the first time, while $AUC(\hat{E_{2}})$ still higher than 0.5.

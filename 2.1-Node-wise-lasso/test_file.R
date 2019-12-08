@@ -3,7 +3,7 @@
 # This is the code for simulating multivariate gaussian distribution with zero mean and the covariance matrix sigma = theta^-1.
 
 #set.seed(123)
-testsample <- simulation(100,1000)
+testsample <- simulation(50,100)
 
 # testdata
 testdata <- testsample$data
@@ -45,7 +45,8 @@ ggplot(E2_roc, aes(FPR, TPR)) + geom_step()
 ggplot(E1_roc, aes(FPR, TPR)) + geom_step()
 #Here for the integrated plot for both method(preferred).
 ggplot()+geom_step(data=E2_roc,mapping = aes(FPR, TPR,colour = 'E_2: either'))+
-  geom_step(data=E1_roc, mapping = aes(FPR, TPR,colour = 'E_1: both'))
+  geom_step(data=E1_roc, mapping = aes(FPR, TPR,colour = 'E_1: both'))+
+  ggtitle("Figure 2.3.2.2")
 
 
 #This is the AUC function.
