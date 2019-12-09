@@ -2,7 +2,7 @@ library(ggplot2)
 library(DescTools)
 library(glasso)
 
-testsample <- simulation(20,1000)
+testsample <- simulation(100,100)
 
 # testdata
 testdata <- testsample$data
@@ -19,7 +19,6 @@ s <- cov(testdata)
 roc <- ROC_curve(testdata, testtheta, lambdamin = 0, lambdamax = 0.2, 200)
 
 # based on the result given by the ROC_curve , we plot the ROC curve here.
-par(mfrow=c(2,2))
 ggplot(roc, aes(FPR, TPR)) + geom_step() + xlim(0,1) + ylim(0,1)  + geom_point(alpha = 0.3)
 
 DescTools::AUC(x = roc$FPR,y = roc$TPR)
