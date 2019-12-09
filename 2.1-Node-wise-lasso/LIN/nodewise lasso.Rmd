@@ -57,24 +57,31 @@ After conducting node-wise lasso with different tuning parameter $\lambda$ and d
 
 For each specific $\lambda$, Lasso estimation for each coefficient $\beta_{ij}$ can be achieved, here in the function `edge_table(data_set, lambda_choice)`. By treating the simulated data and lambda choice, the function will return a $p \times p$ matrix where each entry will be either `TRUE` or `FALSE` which respectively suggests that, for example, at $(i,j)$-entry, `TRUE` means $\hat{\beta_{ij}} \neq 0$ and `FALSE` means $\hat{\beta_{ij}} = 0$. Corresponds to the rules __node-wise Lasso 1__, we say nodes $i$ and $j$ are estimated to be connected as long as Both $(i,j)$-entry and $(j,i)$-entry are `TRUE`. Equivalently, __node-wise Lasso 2__ only requires either $(i,j)$-entry or $(j,i)$-entry are `TRUE` for connecting nodes $i$ and $j$.
 
-Since the sparsity pattern in the $\boldsymbol{\Theta}$ identify the true edge set $E$ $$E=\left\{(i,j):\Theta_{ij} \neq 0, 1\leq i,j \leq p, i \neq j \right\}$$, function `true_edge(theta)` visualise these and return a $p \times p$ matrix similar to the one returned by the function `edge_table(data_set, lambda_choice)`.
+Since the sparsity pattern in the $\boldsymbol{\Theta}$ identifies the true edge set $E$ $$E=\left\{(i,j):\Theta_{ij} \neq 0, 1\leq i,j \leq p, i \neq j \right\}$$, function `true_edge(theta)` visualises these and return a $p \times p$ matrix similar to the one returned by the function `edge_table(data_set, lambda_choice)`.
 
 Finally,by making the results from `edge_table` and `true_edge` as arguments function `confusion_matrix(estimate_edge, trueedge, estimate_way)` will perform calculation of confumatrix and return relevant result including $TPR_{\lambda}$ and $FPR_{\lambda}$. Setting `estimate_way = "both"` will allow function perform the calculation through __node-wise Lasso 1__, while `estimate_way = "either"` makes it go through __node-wise Lasso 2__.
 
 As a result, each $\lambda$ will leads to a specific pair of $TPR_{\lambda}$ and $FPR_{\lambda}$, function `ROC_curve` automates this process by computing through all the lambda and return all the coordinates ($TPR_{\lambda}$,$FPR_{\lambda}$).
 
-#### ROC Curve of different methods with same $\frac{p}{n}$ ratio.
+#### ROC Curve of different methods with same $p$ and $n$.
 
-In this section, the ROC Curves of methods $\hat{E_{1}}$ and $\hat{E_{2}}$ will be compared in parallel with $p$ and $n$ being controlled.
+In this section, the ROC Curves of methods $\hat{E_{1}}$ and $\hat{E_{2}}$ will be compared in parallel with $p$ and $n$ being controlled. we conducted each of the methods mainly under three circumstances: 
 
-First of all, for $p=20$ and $n=1000$, which leads to the ratio $\frac{p}{n}=0.02$, we have the following ROC curve (_Figure 2.3.2.2_). In this low $\frac{p}{n}$ ratio settings, a large enough volumn of training data will help to achieve a good optimal performance on both methods and $\hat{E_{2}}$ has slightly higher $AUC$ than the $\hat{E_{1}}$. More specifically, $\hat{E_{1}}$ has $AUC=0.99199$ while $AUC=0.99140$ for $\hat{E_{2}}$.(Under 50-times iterations setting).
+1. $p<n$
+2. $p=n$
+3. $p>n$
 
-Secondly, for $p=100$ and $n=100$, which leads to the ratio $\frac{p}{n}=1$, we have the following ROC curve (_Figure 2.3.2.3_). In this case, we have a low number of observations and also a relatively high $\frac{p}{n}$ ratio, both methods achieved a lower performance compared to the last case. In detail, $\hat{E_{1}}$ has $AUC=0.67574$ while $AUC=0.74338$ for $\hat{E_{2}}$.(Under 50-times iterations setting). Moreover, for $p=100$ and $n=200$, which corresponds to the ratio $\frac{p}{n}=2$, ROC curve(_Figure 2.3.2.4_) is plotted. $\hat{E_{1}}$ has $AUC=0.43343$ while $AUC=0.59768$ for $\hat{E_{2}}$.
+First of all, for $p=20$ and $n=1000$, which was in the situation $p<n$ (here $\frac{p}{n}=0.02$), we have the following ROC curve (_Figure 2.3.2.2_). In this settings, a large enough volumn of training data will help to achieve a good optimal performance on both methods, and $\hat{E_{2}}$ has slightly higher $AUC$ than the $\hat{E_{1}}$. More specifically, $\hat{E_{1}}$ has $AUC=0.99199$ while $AUC=0.99140$ for $\hat{E_{2}}$.(Under 50-times iterations setting).
+
+Secondly, we presented circumstance of $p=100$ and $n=100$. Here we have $n=p$, or rather, $\frac{p}{n}=1$, we have the following ROC curve (_Figure 2.3.2.3_). In this case, we have a low number of observations compared to the number of variables, both methods achieved a lower performance compared to the last case. In detail, $\hat{E_{1}}$ has $AUC=0.67574$ while $AUC=0.74338$ for $\hat{E_{2}}$.(Under 50-times iterations setting).
+
+Moreover, for $p=200$ and $n=100$, where $p>n$ and $\frac{p}{n}=1$, node-wise Lasso still can perform in this situation while the performance indeed went even lower. ROC curve(_Figure 2.3.2.4_) is plotted. $\hat{E_{1}}$ has $AUC=0.43343$ while $AUC=0.59768$ for $\hat{E_{2}}$.
 
 <center>
 ![Figure 2.3.2.2](2.3.2.2.png){width=200px} ![Figure 2.3.2.3](2.3.2.3.png){width=200px} ![Figure 2.3.2.4](2.3.2.4.png){width=200px}
 </center>
 
-In conclusion, by conducting more simulations on different $\frac{p}{n}$ settings, _Table 2.3.2.5_ is generated to show all the outcomes. __Obviously, by increasing the $\frac{p}{n}$ ratio from 0.02 to 2, Both $\hat{E_{1}}$ and $\hat{E_{2}}$ had their performance decreased over the ratio.__ When $\frac{p}{n}=0.02$, both methods achieved impressive performace which is larger than $AUC=0.99$. In the $n=p$ situation, Both methods perform worse than the last case, while $\hat{E_{1}}$'s AUC decreases 31.88% and AUC decreases 25.02% for $\hat{E_{2}}$ from $\frac{p}{n}=0.02$ case. In the end, if $\frac{p}{n}=2$, we can see that $AUC(\hat{E_{1}})$ dropped below 0.5 for the first time, while $AUC(\hat{E_{2}})$ still higher than 0.5.
+#### Summary
+By conducting more simulations on different $p$ and $n$ settings, _Table 2.3.2.5_ is generated to show all the outcomes. __Obviously, when we fix the value of p, Both $\hat{E_{1}}$ and $\hat{E_{2}}$ had their performance increased while $n$ went larger larger. Similarly, when we fix $n$, the lower $p$ there were in the simulation, the better the performance will be.__ When $p<<n$, both methods achieved impressive performace which is larger than $AUC=0.99$. In the $n=p$ situation, Both methods perform worse than theirs in their $p<n$ case. For instance, $\hat{E_{1}}$'s AUC decreases 31.88%, and AUC decreases 25.02% for $\hat{E_{2}}$ from $p=20$ and $n=1000$ case. In the end, if $\frac{p}{n}=2$, we can see that $AUC(\hat{E_{1}})$ dropped below 0.5 for the first time, while $AUC(\hat{E_{2}})$ still higher than 0.5.
 
 Vertically, __under each $\frac{p}{n}$ setting, $\hat{E_{2}}$ will usually achieve better result than the $\hat{E_{1}}$__, although both of the methods perform very well in $\frac{p}{n}=0.02$, in which big enough data allows lasso and linear regression to inference the hidden structure of the edge set. Similarly, both methods perform not well in the setting $\frac{p}{n}=2$, in which "lack of data" leads to this outcome.

@@ -83,8 +83,8 @@ for (i in seq(50)){
 
 mean_E1_auc <- mean(E1_auc_list)
 mean_E2_auc <- mean(E2_auc_list)
-
-
+sd_E1_auc <- sd(E1_auc_list)
+sd_E2_auc <- sd(E2_auc_list)
 
 
 #sapply attempt(it's actually not much faster, so..)
