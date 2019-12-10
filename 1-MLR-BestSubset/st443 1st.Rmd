@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Firstly, treat realpice as response variable and try the boxcox transformation. We can see that the likelihood function is maximized when $$\lambda = 0$$, so we apply the log transformation and use logprice as the response variable. (The other reason could be Logarithmic price scales tend to show less severe price increases or decreases than linear price scales.)
 
 ```{r}
-airbnb = read.csv("st445_final_data", header = T)
+airbnb = read.csv("st443_final_data", header = T)
 #airbnb3 take out logprice and X columns
 airbnb3 = subset(airbnb, select = -c(1,17))
 attach(airbnb)
