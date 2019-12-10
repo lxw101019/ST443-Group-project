@@ -9,7 +9,7 @@ library(matrixcalc)
 
 
 #set.seed(123)
-testsample <- simulation(50,100)
+testsample <- simulation(100,100)
 
 # testdata
 testdata <- testsample$data
@@ -52,7 +52,7 @@ ggplot(E1_roc, aes(FPR, TPR)) + geom_step()
 #Here for the integrated plot for both method(preferred).
 ggplot()+geom_step(data=E2_roc,mapping = aes(FPR, TPR,colour = 'E_2: either'))+
   geom_step(data=E1_roc, mapping = aes(FPR, TPR,colour = 'E_1: both'))+
-  ggtitle("Figure 2.3.2.2")
+  ggtitle("Figure 2.3.2.3")
 
 
 #This is the AUC function.
