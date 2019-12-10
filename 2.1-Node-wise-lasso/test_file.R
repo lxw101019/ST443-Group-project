@@ -66,25 +66,22 @@ AUC(E1_roc$FPR,E1_roc$TPR,method="step")
 
 
 # 50 times setting for ROC COMPARISON
-E1_auc_list = rep(0,50)
-E2_auc_list = rep(0,50)
-
+auc_table <- data.frame(matrix(ncol = 2, nrow = 50))
+colnames(auc_table)<- c('E1_auc','E2_auc')
 for (i in seq(50)){
-  testsample <- simulation(50,100)
+  testsample <- simulation(20,100)
   testdata <- testsample$data
   testtheta <-testsample$standardtheta
   E1_roc <- ROC_curve(testdata, testtheta,"both",100)
   E2_roc <- ROC_curve(testdata, testtheta,"either",100)
   E1_auc <- AUC(E1_roc$FPR,E1_roc$TPR,method="step")
   E2_auc <- AUC(E2_roc$FPR,E2_roc$TPR,method="step")
-  E1_auc_list[i] <- E1_auc
-  E2_auc_list[i] <- E2_auc
+  auc_table[i,1] <- E1_auc
+  auc_table[i,2] <- E2_auc
 }
+sapply(auc_table, mean, na.rm = TRUE)
+sapply(auc_table, sd, na.rm = TRUE)
 
-mean_E1_auc <- mean(E1_auc_list)
-mean_E2_auc <- mean(E2_auc_list)
-sd_E1_auc <- sd(E1_auc_list)
-sd_E2_auc <- sd(E2_auc_list)
 
 
 #sapply attempt(it's actually not much faster, so..)
