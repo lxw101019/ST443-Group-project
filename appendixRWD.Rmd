@@ -727,6 +727,7 @@ default_param <- list(
 #                 maximize = F,
 #                 label = dtrain[,"logprice"])
 
+#Calculate the mse
 xgb_mod <- xgb.train(data = train_data, params = default_param, nrounds = 1300)
 XGBpred <- predict(xgb_mod, test_data)
 rmse <- rmse(test_df$logprice,XGBpred)
