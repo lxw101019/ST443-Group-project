@@ -1,7 +1,6 @@
 ---
 title: "Appendix Real World Data"
-author: "Laurens van der Maas"
-date: "12/6/2019"
+date: "12/12/2019"
 output: pdf_document
 ---
 
@@ -234,7 +233,7 @@ library(car)
 vif(reg1)
 airbnb2 = subset(train, select = -c(host_identity_verified))
 reg3 = lm(logprice~., airbnb2)
-##Check NICE property, need to show in appendix
+##Check NICE(Normality, Independence, constant variance and expectation of residuals is 0) property
 plot(reg3)
 ##Check if multicollinearity exists 
 vif(reg3)
