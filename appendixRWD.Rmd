@@ -1,7 +1,6 @@
 ---
 title: "Appendix Real World Data"
-author: "Laurens van der Maas"
-date: "12/6/2019"
+date: "12/12/2019"
 output: pdf_document
 ---
 
@@ -23,7 +22,7 @@ amsterdam <- select(amsterdam, price, review_scores_rating, host_since,
                     host_is_superhost, neighbourhood_cleansed, host_listings_count,
                     host_identity_verified, room_type,
                     bathrooms, bedrooms, minimum_nights,
-                    number_of_reviews, cancellation_policy, instant_bookable,                             accommodates, weekly_price, monthly_price, cleaning_fee)
+                    number_of_reviews, cancellation_policy, instant_bookable,accommodates, weekly_price, monthly_price, cleaning_fee)
 
 # Data transformation
 amsterdam$price <- as.numeric(gsub('\\$|,', '', amsterdam$price))
@@ -234,7 +233,7 @@ library(car)
 vif(reg1)
 airbnb2 = subset(train, select = -c(host_identity_verified))
 reg3 = lm(logprice~., airbnb2)
-##Check NICE property, need to show in appendix
+##Check NICE(Normality, Independence, constant variance and expectation of residuals is 0) property
 plot(reg3)
 ##Check if multicollinearity exists 
 vif(reg3)
@@ -716,7 +715,7 @@ default_param <- list(
   subsample=1,
   colsample_bytree=1
 )
-
+##use cross validation to determine the optimal number of rounds
 #xgbcv <- xgb.cv( params = default_param, 
 #                 data = dtrain, nrounds = 2000, 
 #                 nfold = 5, 
