@@ -22,7 +22,7 @@ amsterdam <- select(amsterdam, price, review_scores_rating, host_since,
                     host_is_superhost, neighbourhood_cleansed, host_listings_count,
                     host_identity_verified, room_type,
                     bathrooms, bedrooms, minimum_nights,
-                    number_of_reviews, cancellation_policy, instant_bookable,                             accommodates, weekly_price, monthly_price, cleaning_fee)
+                    number_of_reviews, cancellation_policy, instant_bookable,accommodates, weekly_price, monthly_price, cleaning_fee)
 
 # Data transformation
 amsterdam$price <- as.numeric(gsub('\\$|,', '', amsterdam$price))
