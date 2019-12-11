@@ -21,55 +21,63 @@ for(i in 1:150){
     dfp20n100bp$rate[i] <- dfAll[1,i+4]
   }
 }
+library(tidyverse)
+dfBP <- read.csv('transformWen.csv')
+dfBP <- dfBP[,-1]
+dfBP <- dfBP[,-4]
+dfBP$p <- as.factor(dfBP$p)
+dfBPn100 <- filter(dfBP, n == 100)
+dfBPn1000 <- filter(dfBP, n == 1000)
+dfBPn10000 <- filter(dfBP, n == 10000)
 
 
-
-pp20n100 <- ggplot(dfp20n100bp, aes(x=type, y=rate)) +
+#TPR
+pn100TPR <- ggplot(dfBPn100, aes(x=method, y=TPR)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 100, p = 20") + ylim(0,1)
-
-pp20n1000 <- ggplot(dfp20n1000bp, aes(x=type, y=rate)) +
+  ggtitle("n= 100") + ylim(0,1)
+pn1000TPR <- ggplot(dfBPn1000, aes(x=method, y=TPR)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 1000, p = 20") + ylim(0,1)
-
-pp20n10000 <- ggplot(dfp20n10000bp, aes(x=type, y=rate)) +
+  ggtitle("n= 1000") + ylim(0,1)
+pn10000TPR <- ggplot(dfBPn10000, aes(x=method, y=TPR)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 10000, p = 20") + ylim(0,1)
+  ggtitle("n= 10000") + ylim(0,1)
 
-pp50n100 <- ggplot(dfp50n100bp, aes(x=type, y=rate)) +
-  geom_boxplot(color = 'blue') +
-  ggtitle("n= 100, p = 50") + ylim(0,1)
 
-pp50n1000 <- ggplot(dfp50n1000bp, aes(x=type, y=rate)) +
+#FPR
+pn100FPR <- ggplot(dfBPn100, aes(x=method, y=FPR)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 1000, p = 50") + ylim(0,1)
+  ggtitle("n= 100") + ylim(0,0.5)
+pn1000FPR <- ggplot(dfBPn1000, aes(x=method, y=FPR)) +
+  geom_boxplot(color = 'blue') +
+  ggtitle("n= 1000") + ylim(0,0.5)
+pn10000FPR <- ggplot(dfBPn10000, aes(x=method, y=FPR)) +
+  geom_boxplot(color = 'blue') +
+  ggtitle("n= 10000") + ylim(0,0.5)
 
-pp50n10000 <- ggplot(dfp50n10000bp, aes(x=type, y=rate)) +
+#MCE
+pn100MCE <- ggplot(dfBPn100, aes(x=p, y=MCE)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 10000, p = 50") + ylim(0,1)
-
-pp100n1000 <- ggplot(dfp100n1000bp, aes(x=type, y=rate)) +
+  ggtitle("n= 100") + ylim(0,0.5)
+pn1000MCE <- ggplot(dfBPn1000, aes(x=p, y=MCE)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 1000, p = 100") + ylim(0,1)
-
-pp100n10000 <- ggplot(dfp100n10000bp, aes(x=type, y=rate)) +
+  ggtitle("n= 1000") + ylim(0,0.5)
+pn10000MCE <- ggplot(dfBPn10000, aes(x=p, y=MCE)) +
   geom_boxplot(color = 'blue') +
-  ggtitle("n= 10000, p = 100") + ylim(0,1)
+  ggtitle("n= 10000") + ylim(0,0.5)
 
 library(gridExtra)
-grid.arrange(pp20n100, pp20n1000, pp20n10000, ncol = 3)
-g1 <- arrangeGrob(pp20n100, pp20n1000, pp20n10000, ncol = 3) #generates g
-ggsave(file="p20bp.pdf", g1)
+grid.arrange(pn100TPR, pn1000TPR, pn10000TPR, ncol = 3)
+gTPR <- arrangeGrob(pn100TPR, pn1000TPR, pn10000TPR, ncol = 3) #generates g
+ggsave(file="TPRbp.pdf", gTPR)
 
+grid.arrange(pn100FPR, pn1000FPR, pn10000FPR, ncol = 3)
+gFPR <- arrangeGrob(pn100FPR, pn1000FPR, pn10000FPR, ncol = 3) #generates g
+ggsave(file="FPRbp.pdf", gFPR)
 
-grid.arrange(pp50n100, pp50n1000, pp50n10000, ncol = 3)
-g2 <- arrangeGrob(pp50n100, pp50n1000, pp50n10000, ncol = 3) #generates g
-ggsave(file="p50bp.pdf", g2)
+grid.arrange(pn100MCE, pn1000MCE, pn10000MCE, ncol = 3)
+gMCE <- arrangeGrob(pn100MCE, pn1000MCE, pn10000MCE, ncol = 3) #generates g
+ggsave(file="MCEbp.pdf", gMCE)
 
-
-grid.arrange(pp100n1000, pp100n10000, ncol = 2)
-g3 <- arrangeGrob(pp100n1000, pp100n10000, ncol = 2) #generates g
-ggsave(file="p100bp.pdf", g3)
 
 
 

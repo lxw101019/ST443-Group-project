@@ -48,7 +48,7 @@ write.csv(ratedf,'50repeatsKfoldwithMCE.csv')
 #  coord_cartesian(ylim = c(0, 150))
 
 library(readr)
-kfold <- read.csv('50repeatsKfold.csv')
+kfold <- read.csv('50repeatsKfoldwithMCE.csv')
 kfold <- kfold[,-1]
 kfold <- ratedf
 for(i in 1:24){
@@ -58,7 +58,6 @@ for(i in 1:24){
   print('')
 }
 
-
-cm
+p20n100 <- read.csv('dfp20n100bp.csv')
 
 
