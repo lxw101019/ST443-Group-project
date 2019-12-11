@@ -28,24 +28,8 @@ for(i in 1:8){
     ratedf[3*i,j+4] <- MCE
   }
 }   
-#EBICgraph <- qgraph(glassoBest$wi - diag(diag(glassoBest$wi)), layout = "spring", title = "EBIC")
 
-# log det theta - trace(S theta)
-write.csv(ratedf,'50repeatsKfoldwithMCE.csv')
-#library(tibble)
-#library(ggplot2)
-#library(dplyr)
-#
-#p20 <- as_tibble(t(ratedf[c(1:6),c(5:54)]) )
-#colnames(p20) <- c("p = 20, n = 100, TPR","p = 20, n = 100, FPR","p = 20, n = 1000, TPR",
-#                   "p = 20, n = 1000, FPR","p = 20, n = 10000, TPR","p = 20, n = 10000, FPR")
-#boxplot(p20$`p = 20, n = 100, TPR`)
-#ggplot(ddata = p20) + geom_boxplot(aes(x= "p = 20, n = 100, TPR",y= ""))
-#
-#male <-  as_tibble(c(127,44,28,83,0,6,78,6,5,213,73,20,214,28,11)) # data from page 66
-#ggplot(data = male, aes(x = "", y = male)) + 
-#  geom_boxplot() +
-#  coord_cartesian(ylim = c(0, 150))
+#write.csv(ratedf,'50repeatsKfoldwithMCE.csv')
 
 library(readr)
 kfold <- read.csv('50repeatsKfoldwithMCE.csv')
