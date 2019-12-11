@@ -88,7 +88,7 @@ for (i in 1:length(amsterdam$realprice)){
 drops <- c("weekly_price", "monthly_price")
 amsterdam <- amsterdam[ , !(names(amsterdam) %in% drops)]
 
-# Michael - Add in host's "age" on AirBnb
+# Add in host's "age" on AirBnb
 Date_scrap <- as.Date("14/09/19","%d/%m/%y")
 amsterdam$host_since_duration <- Date_scrap-amsterdam$host_since
 
@@ -113,7 +113,7 @@ amsterdam <- read_csv('st443_final_data')
 
 # ------------------------------------------------------------------------------------
 # Price
-# Using Laurens ggplots:
+# Using ggplots:
 ggplot(amsterdam, aes(logprice)) + 
   geom_freqpoly(stat='density') + xlim(0,10)
 # log transformation of price result in a less skewed variable "price" without losing any data points
@@ -219,12 +219,14 @@ attach(airbnb)
 str(airbnb)
 reg1 = lm(logprice ~., train)
 summary(reg1)
+#Use the best subset selection with respect to Adjusted R^2 and BIC
 library(leaps)
 reg2=regsubsets(logprice~.,nvmax = 20,data = train)
 plot(reg2, scale = "adjr2")
 summary(reg2)
 plot(reg2, scale = "bic")
 outbs=summary(reg2)
+#Check which variables to remove/remain
 which.max(outbs$adjr2)
 which.min(outbs$bic)
 #check multicollinearity
@@ -232,13 +234,17 @@ library(car)
 vif(reg1)
 airbnb2 = subset(train, select = -c(host_identity_verified))
 reg3 = lm(logprice~., airbnb2)
+##Check NICE property, need to show in appendix
+plot(reg3)
+##Check if multicollinearity exists 
 vif(reg3)
 summary(reg3)
 #calculate MSE
 #predictedvalues = predict(reg3, newdata = test)
 #plot(predictedvalues, test$logprice)
 #MSE1 = mean((predictedvalues-test$logprice)^2)
-##other variable selection method
+#the mse is around 0.143
+##other variable selection method(not going to present in the report)
 #step1 = stepAIC(reg1, direction = "both")
 #summary(step1)
 ```
@@ -291,6 +297,7 @@ lambda.best.ridge <- ridge.train$lambda[order(rmse.ridge)[1]]
 lambda.best.ridge
 mseRidge <- min(rmse.ridge)
 mseRidge
+#the mse for rigde is 0.144
 ```
 # Lasso
 
@@ -320,6 +327,7 @@ lambda.best <-lasso.train$lambda[order(rmse)[1]]
 lambda.best
 mseLasso <- min(rmse)
 mseLasso
+#the mse is 0.143
 ```
 
 ## Trees 
@@ -529,7 +537,7 @@ mean((yhat.boost3 - tree_final_data_log.test) ^ 2)
 Code below.
 ```{r,eval = FALSE}
 library("gam")
-
+#Check if non-linearity exists and see what degree freedom is the best using scatter plots and ANOVA
 poly1 = lm(logprice~poly(bedrooms,4), data = airbnb1)
 summary(poly1)
 poly2 = lm(logprice~poly(bathrooms,3),data = airbnb1)
@@ -544,7 +552,7 @@ summary(gam1)
 #gam1p is trying smooth spline
 gam1p = lm(logprice ~ s(bedrooms,4)+s(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration, train)
 summary(gam1p)
-
+#Using best subset selection to determine what variables to remain
 bestgam = regsubsets(logprice ~ ns(bedrooms,4)+ns(bathrooms,2)+review_scores_rating+host_is_superhost+host_listings_count+host_identity_verified+room_type+minimum_nights+number_of_reviews+cancellation_policy+instant_bookable+cleaning_fee+location_3ways+host_since_duration,nvmax=20 ,train)
 plot(bestgam, scale = "adjr2")
 
@@ -554,11 +562,8 @@ summary(gam2)
 predictedvalues1 = predict(gam2, newdata = test)
 plot(predictedvalues1, test$logprice)
 MSE2 = mean((predictedvalues1-test$logprice)^2)
-#We can see that the MSE is around 0.1338, slightly worse than the previous method.
+#We can see that the MSE is around 0.137.
 
-gam3 = lm(logprice ~ ns(bedrooms,4), test)
-plot(gam3)
-shapiro.test(gam3$residuals)
 ```
 
 ## Neural Networks
@@ -658,7 +663,7 @@ amsterdam <- mutate(amsterdam,
 amsterdam <- fastDummies::dummy_cols(amsterdam)
 amsterdam <- amsterdam[,-c(5,10,13,16,22,26)]
 
-
+#Set training and testing dataset
 traingsize = floor(0.7*nrow(amsterdam))
 set.seed(123)
 trainindex = sample(seq_len(nrow(amsterdam)),size = traingsize)
@@ -673,7 +678,7 @@ dtest <- as(testmatrix, "sparseMatrix")
 
 train_data <- xgb.DMatrix(data = dtrain[,-12], label = dtrain[,"logprice"])
 test_data <- xgb.DMatrix(data = dtest[,-12])
-
+#tune parameters using a full grid search
 xgb_grid = expand.grid(
   nrounds = 1000,
   eta = c(0.1, 0.05, 0.01),
@@ -683,7 +688,7 @@ xgb_grid = expand.grid(
   min_child_weight=c(1, 2, 3, 4 ,5),
   subsample=1
 )
-
+#Find the best hyperparameter values using 5 fold cross validation
 my_control <-trainControl(method="cv", number=5)
 
 # Not run, takes ages
