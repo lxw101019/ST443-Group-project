@@ -715,7 +715,7 @@ default_param <- list(
   subsample=1,
   colsample_bytree=1
 )
-
+##use cross validation to determine the optimal number of rounds
 #xgbcv <- xgb.cv( params = default_param, 
 #                 data = dtrain, nrounds = 2000, 
 #                 nfold = 5, 
