@@ -1,5 +1,7 @@
 ---
-title: "Codes for Part 2 of ST443 Project"
+title: "Appendix part 2"
+date: "12/12/2019"
+author: "47602, 35261, 38844, 41781"
 output: pdf_document
 ---
 
